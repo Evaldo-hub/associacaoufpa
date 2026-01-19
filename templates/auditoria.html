@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>🔍 Auditoria do Sistema</h3>
+
+<div class='card shadow-sm'>
+  <div class='card-body'>
+    <div class='table-responsive'>
+      <table class='table table-sm table-hover'>
+        <thead class='table-dark'>
+          <tr>
+            <th>Data/Hora</th>
+            <th>Ação</th>
+            <th>Tabela</th>
+            <th>Registro ID</th>
+            <th>Motivo</th>
+            <th>Usuário</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for registro in registros %}
+          <tr>
+            <td>{{ registro.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>
+              {% if registro.acao == 'EXTORNO_MOVIMENTACAO' %}
+                <span class="badge bg-danger">Extorno Movimentação</span>
+              {% elif registro.acao == 'EXTORNO_DESPESA' %}
+                <span class="badge bg-warning">Extorno Despesa</span>
+              {% elif registro.acao == 'EXTORNO_MENSALIDADE' %}
+                <span class="badge bg-info">Extorno Mensalidade</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ registro.acao }}</span>
+              {% endif %}
+            </td>
+            <td>{{ registro.tabela_afetada }}</td>
+            <td>{{ registro.registro_id }}</td>
+            <td>
+              <small class="text-muted">{{ registro.motivo }}</small>
+            </td>
+            <td>
+              {% if registro.usuario %}
+                {{ registro.usuario }}
+              {% else %}
+                <span class="text-muted">Sistema</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center text-muted">
+              <em>Nenhum registro de auditoria encontrado.</em>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    {% if registros %}
+    <div class='mt-3'>
+      <button class='btn btn-sm btn-outline-secondary' onclick='window.print()'>
+        🖨️ Imprimir
+      </button>
+      <a href='/financeiro' class='btn btn-sm btn-primary'>
+        ← Voltar ao Caixa
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>👥 Gerenciar Usuários</h3>
+
+{% if current_user.is_admin() %}
+<!-- Formulário para promover jogador a admin -->
+<div class='card p-3 mb-4 shadow-sm'>
+  <h5 class="mb-3">🔐 Promover Jogador a Administrador</h5>
+  <form method='post' action='/promover-admin'>
+    <div class='row g-3'>
+      <div class='col-md-6'>
+        <label class="form-label">Selecione o Jogador</label>
+        <select name='jogador_id' class='form-select' required>
+          <option value=''>Selecione um jogador...</option>
+          {% for jogador in jogadores_sem_usuario %}
+          <option value='{{ jogador.id }}'>{{ jogador.nome }} ({{ jogador.tipo }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class='col-md-4'>
+        <label class="form-label">Tipo de Acesso</label>
+        <select name='tipo_acesso' class='form-select' required>
+          <option value='admin'>Administrador</option>
+          <option value='visualizador'>Apenas Visualização</option>
+        </select>
+      </div>
+      <div class='col-md-2 d-flex align-items-end'>
+        <button type='submit' class='btn btn-primary w-100'>Promover</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Lista de usuários existentes -->
+<div class='card shadow-sm'>
+  <div class='card-body'>
+    <h5 class='card-title mb-3'>📋 Usuários Cadastrados</h5>
+    <div class='table-responsive'>
+      <table class='table table-hover'>
+        <thead class='table-dark'>
+          <tr>
+            <th>Usuário</th>
+            <th>Jogador Associado</th>
+            <th>Tipo de Acesso</th>
+            <th>Data de Criação</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for usuario in usuarios %}
+          <tr>
+            <td>
+              <strong>{{ usuario.username }}</strong>
+              {% if usuario.is_admin() %}
+              <span class="badge bg-danger ms-2">ADMIN</span>
+              {% else %}
+              <span class="badge bg-info ms-2">VISUALIZADOR</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if usuario.jogador %}
+                {{ usuario.jogador.nome }} ({{ usuario.jogador.tipo }})
+              {% else %}
+                <em class="text-muted">Não associado</em>
+              {% endif %}
+            </td>
+            <td>
+              {% if usuario.is_admin() %}
+              <span class="badge bg-danger">Administrador</span>
+              {% else %}
+              <span class="badge bg-info">Visualizador</span>
+              {% endif %}
+            </td>
+            <td>{{ usuario.created_at.strftime('%d/%m/%Y') if usuario.created_at else 'N/A' }}</td>
+            <td>
+              {% if usuario.username != 'admin' %}
+              <form method="post" action="{{ url_for('remover_usuario', usuario_id=usuario.id) }}" 
+                    onsubmit="return confirm('Tem certeza que deseja remover este usuário?');" 
+                    style="display: inline;">
+                <button type="submit" class="btn btn-sm btn-danger">
+                  🗑️ Remover
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted">Principal</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">
+              <em>Nenhum usuário cadastrado além do admin</em>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="alert alert-warning">
+  <strong>Acesso Restrito:</strong> Apenas administradores podem gerenciar usuários.
+</div>
+{% endif %}
+{% endblock %}

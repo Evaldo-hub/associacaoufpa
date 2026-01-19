@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3>📊 Placares dos Jogos</h3>
+  
+  {% if current_user.is_admin() %}
+  <!-- Formulário para registrar/editar placar -->
+  <div class='card p-3 mb-4 shadow-sm'>
+    <h5 class="mb-3">⚽ Registrar Resultado do Jogo</h5>
+    <form method='post' action='/salvar-placar' class='row g-3'>
+      <div class='col-md-3'>
+        <label class="form-label">Jogo</label>
+        <select name='jogo_id' class='form-select' required>
+          <option value=''>Selecione o jogo...</option>
+          {% for jogo in jogos %}
+          <option value='{{ jogo.id }}' {% if jogo_selecionado and jogo_selecionado == jogo.id %}selected{% endif %}>
+            {{ jogo.data.strftime('%d/%m/%Y') }} - {{ jogo.adversario or 'Adversário' }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class='col-md-2'>
+        <label class="form-label">Placar Associação</label>
+        <input type='number' name='placar_associacao' min='0' class='form-control' required>
+      </div>
+      <div class='col-md-2'>
+        <label class="form-label">Placar Adversário</label>
+        <input type='number' name='placar_adversario' min='0' class='form-control' required>
+      </div>
+      <div class='col-md-3'>
+        <label class="form-label">Status</label>
+        <select name='status' class='form-select' required>
+          <option value='realizado'>✅ Realizado</option>
+          <option value='cancelado'>❌ Cancelado</option>
+          <option value='adiado'>⏰ Adiado</option>
+        </select>
+      </div>
+      <div class='col-md-2 d-flex align-items-end'>
+        <button type='submit' class='btn btn-success w-100'>📝 Salvar</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div class="alert alert-warning">
+    <strong>Acesso Restrito:</strong> Apenas administradores podem registrar placares.
+  </div>
+  {% endif %}
+
+  <!-- Lista de jogos com resultados -->
+  <div class='card shadow-sm'>
+    <div class='card-body'>
+      <h5 class='card-title mb-3'>📋 Histórico de Jogos</h5>
+      <div class='table-responsive'>
+        <table class='table table-hover'>
+          <thead class='table-dark'>
+            <tr>
+              <th>Data</th>
+              <th>Adversário</th>
+              <th>Placar</th>
+              <th>Status</th>
+              <th>Resultado</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for jogo in jogos %}
+            <tr>
+              <td>{{ jogo.data.strftime('%d/%m/%Y') }}</td>
+              <td>{{ jogo.adversario or '-' }}</td>
+              <td>
+                {% if jogo.resumo_texto %}
+                  <strong>{{ jogo.resumo_texto }}</strong>
+                {% else %}
+                  <em class="text-muted">Não registrado</em>
+                {% endif %}
+              </td>
+              <td>
+                {% if 'realizado' in jogo.resumo_texto %}
+                  <span class="badge bg-success">✅ Realizado</span>
+                {% elif 'cancelado' in jogo.resumo_texto %}
+                  <span class="badge bg-danger">❌ Cancelado</span>
+                {% elif 'adiado' in jogo.resumo_texto %}
+                  <span class="badge bg-warning">⏰ Adiado</span>
+                {% else %}
+                  <span class="badge bg-secondary">📅 Agendado</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if jogo.resumo_texto and 'x' in jogo.resumo_texto %}
+                  {% set placar_parts = jogo.resumo_texto.split('x') %}
+                  {% if placar_parts|length == 2 %}
+                    {% set assoc_gols = placar_parts[0].strip()|int %}
+                    {% set adv_gols = placar_parts[1].split()[0].strip()|int %}
+                    {% if assoc_gols > adv_gols %}
+                      <span class="badge bg-success">🏆 Vitória</span>
+                    {% elif assoc_gols < adv_gols %}
+                      <span class="badge bg-danger">😞 Derrota</span>
+                    {% else %}
+                      <span class="badge bg-warning">🤝 Empate</span>
+                    {% endif %}
+                  {% endif %}
+                {% else %}
+                  <em class="text-muted">-</em>
+                {% endif %}
+              </td>
+              <td>
+                {% if current_user.is_admin() %}
+                  <a href='/placares/{{ jogo.id }}' class='btn btn-sm btn-outline-primary'>
+                    {% if jogo.resumo_texto %}✏️ Editar{% else %}📝 Registrar{% endif %}
+                  </a>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">
+                <em>Nenhum jogo cadastrado</em>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estatísticas -->
+  {% if estatisticas %}
+  <div class='row mt-4'>
+    <div class='col-md-3'>
+      <div class='card border-success'>
+        <div class='card-body text-center'>
+          <h6 class='card-title'>🏆 Vitórias</h6>
+          <h4 class='text-success'>{{ estatisticas.vitorias }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3'>
+      <div class='card border-danger'>
+        <div class='card-body text-center'>
+          <h6 class='card-title'>😞 Derrotas</h6>
+          <h4 class='text-danger'>{{ estatisticas.derrotas }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3'>
+      <div class='card border-warning'>
+        <div class='card-body text-center'>
+          <h6 class='card-title'>🤝 Empates</h6>
+          <h4 class='text-warning'>{{ estatisticas.empates }}</h4>
+        </div>
+      </div>
+    </div>
+    <div class='col-md-3'>
+      <div class='card border-info'>
+        <div class='card-body text-center'>
+          <h6 class='card-title'>📊 Aproveitamento</h6>
+          <h4 class='text-info'>{{ "%.1f"|format(estatisticas.aproveitamento) }}%</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

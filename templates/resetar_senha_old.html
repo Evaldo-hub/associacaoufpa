@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white text-center">
+          <h4 class="mb-0">🔐 Resetar Senha</h4>
+        </div>
+        <div class="card-body">
+          {% if current_user.is_admin() %}
+          <!-- Formulário para admin resetar senha de outros usuários -->
+          <form method="post" action="{{ url_for('resetar_senha_admin') }}">
+            <div class="mb-3">
+              <label for="usuario_id" class="form-label">Selecione o Usuário</label>
+              <select name="usuario_id" id="usuario_id" class="form-select" required>
+                <option value="">Escolha um usuário...</option>
+                {% for usuario in usuarios %}
+                <option value="{{ usuario.id }}">
+                  {{ usuario.username }} 
+                  {% if usuario.jogador %}({{ usuario.jogador.nome }}){% endif %}
+                  - {{ 'Admin' if usuario.is_admin() else 'Visualizador' }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="nova_senha" class="form-label">Nova Senha</label>
+              <input type="password" name="nova_senha" id="nova_senha" class="form-control" 
+                     placeholder="Digite a nova senha" required minlength="6">
+            </div>
+            <div class="mb-3">
+              <label for="confirmar_senha" class="form-label">Confirmar Senha</label>
+              <input type="password" name="confirmar_senha" id="confirmar_senha" class="form-control" 
+                     placeholder="Confirme a nova senha" required minlength="6">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+              🔑 Resetar Senha
+            </button>
+          </form>
+          
+          <hr class="my-4">
+          
+          <div class="text-center">
+            <small class="text-muted">
+              <strong>Nota:</strong> Você também pode resetar sua própria senha abaixo.
+            </small>
+          </div>
+          
+          {% else %}
+          <!-- Formulário para usuário resetar própria senha -->
+          <form method="post" action="{{ url_for('resetar_senha_usuario') }}">
+            <div class="mb-3">
+              <label for="senha_atual" class="form-label">Senha Atual</label>
+              <input type="password" name="senha_atual" id="senha_atual" class="form-control" 
+                     placeholder="Digite sua senha atual" required>
+            </div>
+            <div class="mb-3">
+              <label for="nova_senha" class="form-label">Nova Senha</label>
+              <input type="password" name="nova_senha" id="nova_senha" class="form-control" 
+                     placeholder="Digite a nova senha" required minlength="6">
+            </div>
+            <div class="mb-3">
+              <label for="confirmar_senha" class="form-label">Confirmar Senha</label>
+              <input type="password" name="confirmar_senha" id="confirmar_senha" class="form-control" 
+                     placeholder="Confirme a nova senha" required minlength="6">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+              🔑 Alterar Minha Senha
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Botão voltar -->
+      <div class="text-center mt-3">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+          ← Voltar
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Validação de senhas
+  const forms = document.querySelectorAll('form');
+  forms.forEach(form => {
+    form.addEventListener('submit', function(e) {
+      const novaSenha = form.querySelector('input[name="nova_senha"]').value;
+      const confirmarSenha = form.querySelector('input[name="confirmar_senha"]').value;
+      
+      if (novaSenha !== confirmarSenha) {
+        e.preventDefault();
+        alert('As senhas não coincidem!');
+        return false;
+      }
+      
+      if (novaSenha.length < 6) {
+        e.preventDefault();
+        alert('A senha deve ter pelo menos 6 caracteres!');
+        return false;
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

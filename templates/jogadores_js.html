@@ -1,0 +1,50 @@
+<script>
+function editarJogador(id) {
+  console.log('editarJogador chamado com ID:', id);
+  
+  // Buscar dados do jogador via AJAX com headers necessários
+  fetch('/jogador-dados/' + id, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  })
+    .then(response => {
+      console.log('Resposta recebida:', response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Dados recebidos:', data);
+      
+      // Preencher formulário de edição
+      document.getElementById('editar_id').value = data.id;
+      document.getElementById('editar_nome').value = data.nome;
+      document.getElementById('editar_telefone').value = data.telefone || '';
+      document.getElementById('editar_tipo').value = data.tipo;
+      document.getElementById('editar_ativo').checked = data.ativo;
+      document.getElementById('editar_nativo').checked = data.nativo;
+      
+      // Mostrar formulário de edição e ocultar de cadastro
+      document.getElementById('formEdicao').style.display = 'block';
+      document.getElementById('formCadastro').style.display = 'none';
+      
+      console.log('Formulário preenchido e exibido');
+    })
+    .catch(error => {
+      console.error('Erro ao buscar dados do jogador:', error);
+      // Se ainda falhar, mostrar mensagem para o usuário
+      alert('Erro ao carregar dados do jogador. Tente recarregar a página.');
+    });
+}
+
+function cancelarEdicao() {
+  document.getElementById('formEdicao').style.display = 'none';
+  document.getElementById('formCadastro').style.display = 'block';
+}
+</script>

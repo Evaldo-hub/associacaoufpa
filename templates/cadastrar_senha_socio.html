@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow">
+      <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">
+          {% if current_user.is_admin() %}
+          🛡️ Cadastrar Senha para Sócio
+          {% else %}
+          ⚽ Cadastrar Minha Senha
+          {% endif %}
+        </h4>
+      </div>
+      <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        
+        {% if current_user.is_admin() %}
+        <!-- Formulário para Admin -->
+        {% if socios_sem_user %}
+        <form method="post">
+          <div class="mb-3">
+            <label for="jogador_id" class="form-label">Selecionar Sócio</label>
+            <select name="jogador_id" id="jogador_id" class="form-select" required>
+              <option value="">Escolha um sócio...</option>
+              {% for socio in socios_sem_user %}
+              <option value="{{ socio.id }}">
+                {{ socio.nome }} - {{ socio.telefone or 'Sem telefone' }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="password" class="form-label">Senha</label>
+            <input type="password" name="password" id="password" class="form-control" 
+                   minlength="6" required placeholder="Mínimo 6 caracteres">
+            <div class="form-text">A senha deve ter pelo menos 6 caracteres</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="confirm_password" class="form-label">Confirmar Senha</label>
+            <input type="password" name="confirm_password" id="confirm_password" class="form-control" 
+                   minlength="6" required placeholder="Digite a senha novamente">
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-100">
+            🔐 Criar Conta para Sócio
+          </button>
+        </form>
+        {% else %}
+        <div class="alert alert-info">
+          <h5>✅ Todos os sócios já possuem contas!</h5>
+          <p class="mb-0">Não há sócios sem acesso ao sistema.</p>
+        </div>
+        {% endif %}
+        
+        {% if socios_com_user %}
+        <hr>
+        <h5>📋 Sócios com Acesso Cadastrado:</h5>
+        <div class="list-group">
+          {% for socio in socios_com_user %}
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ socio.nome }}</strong>
+              <br>
+              <small class="text-muted">Usuário: {{ socio.user.username }}</small>
+            </div>
+            <span class="badge bg-success">✅ Ativo</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- Formulário para Jogador -->
+        {% if jogador %}
+        <form method="post">
+          <div class="alert alert-info">
+            <h5>👤 Seus Dados:</h5>
+            <p class="mb-1"><strong>Nome:</strong> {{ jogador.nome }}</p>
+            <p class="mb-1"><strong>Tipo:</strong> {{ jogador.tipo }}</p>
+            {% if jogador.telefone %}
+            <p class="mb-0"><strong>Telefone:</strong> {{ jogador.telefone }}</p>
+            {% endif %}
+          </div>
+          
+          <div class="mb-3">
+            <label for="password" class="form-label">Criar Senha</label>
+            <input type="password" name="password" id="password" class="form-control" 
+                   minlength="6" required placeholder="Mínimo 6 caracteres">
+            <div class="form-text">Crie uma senha com pelo menos 6 caracteres para acessar o sistema</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="confirm_password" class="form-label">Confirmar Senha</label>
+            <input type="password" name="confirm_password" id="confirm_password" class="form-control" 
+                   minlength="6" required placeholder="Digite a senha novamente">
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-100">
+            🔐 Criar Minha Conta
+          </button>
+        </form>
+        
+        <div class="mt-3">
+          <small class="text-muted">
+            Com sua conta, você poderá:
+            <ul class="mb-0">
+              <li>✅ Confirmar presença em jogos</li>
+              <li>📊 Ver estatísticas e ranking</li>
+              <li>👥 Visualizar informações dos jogadores</li>
+            </ul>
+          </small>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+          <h5>⚠️ Aviso</h5>
+          <p class="mb-0">Você não está associado a nenhum jogador no sistema.</p>
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const password = document.getElementById('password');
+  const confirmPassword = document.getElementById('confirm_password');
+  
+  if (password && confirmPassword) {
+    confirmPassword.addEventListener('input', function() {
+      if (password.value !== confirmPassword.value) {
+        confirmPassword.setCustomValidity('As senhas não coincidem');
+      } else {
+        confirmPassword.setCustomValidity('');
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

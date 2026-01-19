@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>🏆 Ranking de Atletas</h3>
+<p class="text-muted">Sistema completo de avaliação de desempenho dos atletas</p>
+
+<!-- Abas de navegação -->
+<ul class="nav nav-tabs mb-4" id="rankingTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="presenca-tab" data-bs-toggle="tab" data-bs-target="#presenca" type="button" role="tab">
+      📊 Ranking por Presença
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="financeiro-tab" data-bs-toggle="tab" data-bs-target="#financeiro" type="button" role="tab">
+      💰 Ranking Financeiro
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tecnico-tab" data-bs-toggle="tab" data-bs-target="#tecnico" type="button" role="tab">
+      ⚽ Ranking Técnico
+    </button>
+  </li>
+</ul>
+
+<!-- Conteúdo das abas -->
+<div class="tab-content" id="rankingTabsContent">
+  
+  <!-- Ranking por Presença -->
+  <div class="tab-pane fade show active" id="presenca" role="tabpanel">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-4">📊 Ranking por Presença</h5>
+        <p class="text-muted mb-3">
+          <strong>Critérios:</strong> Confirmou presença (+1 ponto) | Pagou (+1 ponto) | Faltou (0 pontos)
+        </p>
+        
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Atleta</th>
+                <th>Total Jogos</th>
+                <th>Confirmados</th>
+                <th>Pagos</th>
+                <th>% Presença</th>
+                <th>Pontuação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in ranking_presenca %}
+              <tr>
+                <td><strong>{{ loop.index }}</strong></td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <strong>{{ item.jogador.nome }}</strong>
+                    {% if item.jogador.nativo %}
+                    <span class="badge bg-info ms-2">🏠 Nativo</span>
+                    {% endif %}
+                  </div>
+                  <small class="text-muted">{{ item.jogador.tipo }}</small>
+                </td>
+                <td class="text-center">{{ item.total_jogos }}</td>
+                <td class="text-center">
+                  <span class="badge bg-success">{{ item.jogos_confirmados }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-primary">{{ item.jogos_pagos }}</span>
+                </td>
+                <td class="text-center">
+                  <div class="progress" style="height: 20px;">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: {{ item.perc_presenca }}%;"
+                         aria-valuenow="{{ item.perc_presenca }}" 
+                         aria-valuemin="0" aria-valuemax="100">
+                      {{ "%.1f"|format(item.perc_presenca) }}%
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-warning text-dark fs-6">{{ item.pontuacao }}</span>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="7" class="text-center text-muted">
+                  <em>Nenhum atleta encontrado</em>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Ranking Financeiro -->
+  <div class="tab-pane fade" id="financeiro" role="tabpanel">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-4">💰 Ranking Financeiro</h5>
+        <p class="text-muted mb-3">
+          <strong>Critérios:</strong> Total pago | Quantidade de jogos pagos
+        </p>
+        
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Atleta</th>
+                <th>Total Pago</th>
+                <th>Jogos Pagos</th>
+                <th>Média por Jogo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in ranking_financeiro %}
+              <tr>
+                <td><strong>{{ loop.index }}</strong></td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <strong>{{ item.jogador.nome }}</strong>
+                    {% if item.jogador.nativo %}
+                    <span class="badge bg-info ms-2">🏠 Nativo</span>
+                    {% endif %}
+                  </div>
+                  <small class="text-muted">{{ item.jogador.tipo }}</small>
+                </td>
+                <td class="text-center">
+                  <strong class="text-success">R$ {{ "%.2f"|format(item.total_pago) }}</strong>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-primary">{{ item.qtd_pagamentos }}</span>
+                </td>
+                <td class="text-center">
+                  {% if item.qtd_pagamentos > 0 %}
+                    R$ {{ "%.2f"|format(item.total_pago / item.qtd_pagamentos) }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted">
+                  <em>Nenhum atleta encontrado</em>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Ranking Técnico -->
+  <div class="tab-pane fade" id="tecnico" role="tabpanel">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-4">⚽ Ranking Técnico</h5>
+        <p class="text-muted mb-3">
+          <strong>Critérios:</strong> Gols (+1) | Craque do Jogo (+1) | Expulsões (-1)
+        </p>
+        
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Atleta</th>
+                <th>⚽ Gols</th>
+                <th>⭐ Craque</th>
+                <th>🟥 Expulsões</th>
+                <th>Pontuação Técnica</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in ranking_tecnico %}
+              <tr>
+                <td><strong>{{ loop.index }}</strong></td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <strong>{{ item.jogador.nome }}</strong>
+                    {% if item.jogador.nativo %}
+                    <span class="badge bg-info ms-2">🏠 Nativo</span>
+                    {% endif %}
+                  </div>
+                  <small class="text-muted">{{ item.jogador.tipo }}</small>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-success">{{ item.total_gols }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-warning text-dark">{{ item.craque_count }}</span>
+                </td>
+                <td class="text-center">
+                  {% if item.total_expulsoes > 0 %}
+                    <span class="badge bg-danger">{{ item.total_expulsoes }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">0</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-info fs-6">{{ item.pontuacao_tecnica }}</span>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="text-center text-muted">
+                  <em>Nenhum atleta encontrado</em>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</div>
+
+<!-- Resumo Geral -->
+<div class="card shadow-sm mt-4">
+  <div class="card-body">
+    <h5 class="card-title mb-3">📊 Resumo Geral</h5>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card border-primary">
+          <div class="card-body text-center">
+            <h6 class="card-title">👥 Total de Atletas</h6>
+            <p class="card-text">
+              <strong class="text-primary">{{ ranking_presenca | length }}</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-success">
+          <div class="card-body text-center">
+            <h6 class="card-title">🏆 Melhor em Presença</h6>
+            <p class="card-text">
+              {% if ranking_presenca %}
+                <strong class="text-success">{{ ranking_presenca[0].jogador.nome }}</strong>
+                <br><small>{{ ranking_presenca[0].pontuacao }} pts</small>
+              {% else %}
+                <strong class="text-muted">-</strong>
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-info">
+          <div class="card-body text-center">
+            <h6 class="card-title">💰 Melhor Financeiro</h6>
+            <p class="card-text">
+              {% if ranking_financeiro %}
+                <strong class="text-info">{{ ranking_financeiro[0].jogador.nome }}</strong>
+                <br><small>R$ {{ "%.2f"|format(ranking_financeiro[0].total_pago) }}</small>
+              {% else %}
+                <strong class="text-muted">-</strong>
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<a href="/" class="btn btn-secondary mt-3">Voltar</a>
+{% endblock %}

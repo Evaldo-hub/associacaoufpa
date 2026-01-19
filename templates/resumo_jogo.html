@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h4>📝 Resumo Técnico: {{ jogo.adversario }}</h4>
+<p class="text-muted">{{ jogo.adversario }} — {{ jogo.data.strftime('%d/%m/%Y') }}</p>
+
+<form method='post'>
+  <div class='card p-3 mb-4 shadow-sm'>
+    <h5 class='mb-3'>⚽ Gols e Expulsões por Jogador</h5>
+    <div class='row'>
+      {% for p in presentes %}
+      <div class='col-md-4 mb-3'>
+        <div class='card border-secondary'>
+          <div class='card-body text-center'>
+            <h6 class='card-title'>{{ p.jogador.nome }}</h6>
+            
+            <div class='form-check mb-2'>
+              <input class='form-check-input' type='checkbox' name='marcou_gol_{{ p.id }}' 
+                     id='marcou_gol_{{ p.id }}' {% if p.gols > 0 %}checked{% endif %}>
+              <label class='form-check-label' for='marcou_gol_{{ p.id }}'>
+                ⚽ Fez gol
+              </label>
+            </div>
+            
+            <div class='form-group mb-2' id='gols_group_{{ p.id }}' 
+                 style='display: {% if p.gols > 0 %}block{% else %}none{% endif %}'>
+              <label class='form-label small'>Quantos gols?</label>
+              <input type='number' min='1' name='gols_{{ p.id }}' 
+                     value='{{ p.gols if p.gols > 0 else 1 }}' 
+                     class='form-control form-control-sm text-center' placeholder='1'>
+            </div>
+            
+            <div class='form-check'>
+              <input class='form-check-input' type='checkbox' name='expulso_{{ p.id }}' 
+                     id='expulso_{{ p.id }}' {% if p.expulso %}checked{% endif %}>
+              <label class='form-check-label' for='expulso_{{ p.id }}'>
+                🟥 Expulso
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card p-3 shadow-sm mb-3">
+    <label class="form-label">⭐ Craque da Partida</label>
+    <select name="craque_id" class="form-select">
+      <option value="">Nenhum</option>
+      {% for p in presentes %}
+      <option value='{{ p.jogador_id }}' {% if jogo.craque_id == p.jogador_id %}selected{% endif %}>
+        {{ p.jogador.nome }}
+      </option>
+      {% endfor %}
+    </select>
+
+    <label class="form-label mt-3">📝 Resumo da Partida</label>
+    <textarea name="resumo" rows="4" class="form-control">{{ jogo.resumo_texto or '' }}</textarea>
+
+    <button class="btn btn-success mt-3 w-100">Salvar Resumo</button>
+    <a href='/jogos' class='btn btn-secondary mt-2 w-100'>Voltar</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Mostrar/ocultar campo de gols quando checkbox é marcado
+  document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('[name^="marcou_gol_"]');
+    checkboxes.forEach(function(checkbox) {
+      const playerId = checkbox.id.replace('marcou_gol_', '');
+      const golsGroup = document.getElementById('gols_group_' + playerId);
+      
+      if (golsGroup) {
+        checkbox.addEventListener('change', function() {
+          golsGroup.style.display = this.checked ? 'block' : 'none';
+          if (this.checked) {
+            const input = golsGroup.querySelector('input');
+            if (input && !input.value) {
+              input.value = '1';
+            }
+          }
+        });
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Alerta do Próximo Jogo -->
+{% if proximo_jogo %}
+<div class='alert alert-info alert-dismissible fade show' role='alert'>
+  <div class='d-flex align-items-center'>
+    <div class='flex-grow-1'>
+      <h6 class='alert-heading mb-1'>
+        <i class='bi bi-calendar-event'></i> Próximo Jogo
+        {% if dias_proximo_jogo == 1 %}
+        <span class='badge bg-warning ms-2'>Amanhã!</span>
+        {% elif dias_proximo_jogo <= 7 %}
+        <span class='badge bg-success ms-2'>{{ dias_proximo_jogo }} dias</span>
+        {% else %}
+        <span class='badge bg-secondary ms-2'>{{ dias_proximo_jogo }} dias</span>
+        {% endif %}
+      </h6>
+      <p class='mb-0'>
+        <strong>{{ proximo_jogo.adversario }}</strong> 
+        <span class='badge bg-primary ms-2'>{{ proximo_jogo.data.strftime('%d/%m/%Y') }}</span>
+        {% if proximo_jogo.local %}
+        <span class='text-muted ms-2'>📍 {{ proximo_jogo.local }}</span>
+        {% endif %}
+      </p>
+    </div>
+    <div class='ms-3'>
+      <a href='/presencas/{{ proximo_jogo.id }}' class='btn btn-primary btn-sm'>
+        Gerenciar Presenças
+      </a>
+    </div>
+  </div>
+  <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+</div>
+{% endif %}
+
+<div class='row g-3 text-center'>
+  <div class='col-md-3'>
+    <div class='card p-3 shadow-sm bg-primary text-white'>
+      <h6>Saldo Geral</h6>
+      <h3>R$ {{ "%.2f"|format(saldo) }}</h3>
+    </div>
+  </div>
+  <div class='col-md-3'>
+    <div class='card p-3 shadow-sm bg-success text-white'>
+      <h6>Mensalidades</h6>
+      <h3>R$ {{ "%.2f"|format(mensal) }}</h3>
+    </div>
+  </div>
+  <div class='col-md-3'>
+    <div class='card p-3 shadow-sm bg-info text-white'>
+      <h6>Partidas</h6>
+      <h3>R$ {{ "%.2f"|format(partidas) }}</h3>
+    </div>
+  </div>
+  <div class='col-md-3'>
+    <div class='card p-3 shadow-sm bg-danger text-white'>
+      <h6>Despesas</h6>
+      <h3>R$ {{ "%.2f"|format(despesas) }}</h3>
+    </div>
+  </div>
+</div>
+
+<!-- Gráfico de Artilharia -->
+<div class='mt-4'>
+  <div class='card shadow-sm'>
+    <div class='card-header bg-warning text-dark'>
+      <h5 class='mb-0'>⚽ Artilharia</h5>
+    </div>
+    <div class='card-body'>
+      {% if artilharia %}
+      <div class='row'>
+        <div class='col-md-8'>
+          <canvas id='artilhariaChart' width='400' height='200'></canvas>
+        </div>
+        <div class='col-md-4'>
+          <h6>Top Artilheiros</h6>
+          <div class='list-group'>
+            {% for atleta in artilharia[:5] %}
+            <div class='list-group-item d-flex justify-content-between align-items-center'>
+              <span>
+                <strong>{{ loop.index }}.</strong> {{ atleta.nome }}
+              </span>
+              <span class='badge bg-warning text-dark rounded-pill'>{{ atleta.gols }} ⚽</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class='text-center text-muted py-4'>
+        <h5>Nenhum gol marcado ainda</h5>
+        <p>Os artilheiros aparecerão aqui assim que os gols forem registrados nas partidas.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class='mt-4 p-4 bg-white rounded shadow-sm'>
+  <h4>Bem-vindo ao Gestor da Associação</h4>
+  <p class='text-muted'>Utilize o menu acima para gerenciar atletas, jogos e o caixa.</p>
+  
+  <div class='mt-3'>
+    <a href='/pdf-caixa' class='btn btn-danger btn-lg me-2'>
+      📄 Extrato do Caixa
+    </a>
+    <a href='/financeiro' class='btn btn-primary btn-lg me-2'>
+      💰 Gerenciar Caixa
+    </a>
+    <a href='/financeiro' class='btn btn-outline-primary btn-lg'>
+      📅 Extrato por Período
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if artilharia %}
+// Preparar dados para o JavaScript
+var labels = [];
+var data = [];
+{% for atleta in artilharia %}
+labels.push('{{ atleta.nome|e }}');
+data.push({{ atleta.gols }});
+{% endfor %}
+
+// Dados do gráfico
+var artilhariaData = {
+  labels: labels,
+  datasets: [{
+    label: 'Gols Marcados',
+    data: data,
+    backgroundColor: [
+      'rgba(255, 206, 86, 0.8)',
+      'rgba(75, 192, 192, 0.8)',
+      'rgba(255, 99, 132, 0.8)',
+      'rgba(54, 162, 235, 0.8)',
+      'rgba(153, 102, 255, 0.8)',
+      'rgba(255, 159, 64, 0.8)',
+      'rgba(201, 203, 207, 0.8)',
+      'rgba(255, 99, 255, 0.8)',
+      'rgba(99, 255, 132, 0.8)',
+      'rgba(255, 206, 186, 0.8)'
+    ],
+    borderColor: [
+      'rgba(255, 206, 86, 1)',
+      'rgba(75, 192, 192, 1)',
+      'rgba(255, 99, 132, 1)',
+      'rgba(54, 162, 235, 1)',
+      'rgba(153, 102, 255, 1)',
+      'rgba(255, 159, 64, 1)',
+      'rgba(201, 203, 207, 1)',
+      'rgba(255, 99, 255, 1)',
+      'rgba(99, 255, 132, 1)',
+      'rgba(255, 206, 186, 1)'
+    ],
+    borderWidth: 2
+  }]
+};
+
+// Configuração do gráfico
+var config = {
+  type: 'bar',
+  data: artilhariaData,
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: true,
+        text: 'Top 10 Artilheiros',
+        font: {
+          size: 16
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        },
+        title: {
+          display: true,
+          text: 'Quantidade de Gols'
+        }
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Atletas'
+        }
+      }
+    }
+  }
+};
+
+// Criar o gráfico
+var ctx = document.getElementById('artilhariaChart').getContext('2d');
+new Chart(ctx, config);
+{% endif %}
+</script>
+{% endblock %}

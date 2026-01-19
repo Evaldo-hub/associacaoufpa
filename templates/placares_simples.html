@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3>📊 Placares dos Jogos</h3>
+  
+  {% if current_user.is_admin() %}
+  <!-- Formulário para registrar placar -->
+  <div class='card p-3 mb-4 shadow-sm'>
+    <h5 class="mb-3">⚽ Registrar Resultado do Jogo</h5>
+    <form method='post' action='/salvar-placar' class='row g-3'>
+      <div class='col-md-3'>
+        <label class="form-label">Jogo</label>
+        <select name='jogo_id' class='form-select' required>
+          <option value=''>Selecione o jogo...</option>
+          {% for jogo in jogos %}
+          <option value='{{ jogo.id }}'>
+            {{ jogo.data.strftime('%d/%m/%Y') }} - {{ jogo.adversario or 'Adversário' }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class='col-md-2'>
+        <label class="form-label">Placar Associação</label>
+        <input type='number' name='placar_associacao' min='0' class='form-control' required>
+      </div>
+      <div class='col-md-2'>
+        <label class="form-label">Placar Adversário</label>
+        <input type='number' name='placar_adversario' min='0' class='form-control' required>
+      </div>
+      <div class='col-md-3'>
+        <label class="form-label">Status</label>
+        <select name='status' class='form-select' required>
+          <option value='realizado'>✅ Realizado</option>
+          <option value='cancelado'>❌ Cancelado</option>
+          <option value='adiado'>⏰ Adiado</option>
+        </select>
+      </div>
+      <div class='col-md-2 d-flex align-items-end'>
+        <button type='submit' class='btn btn-success w-100'>📝 Salvar</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    <strong>Visualização Apenas:</strong> Você está visualizando os placares. Apenas administradores podem registrar novos resultados.
+  </div>
+  {% endif %}
+
+  <!-- Lista de jogos -->
+  <div class='card shadow-sm'>
+    <div class='card-body'>
+      <h5 class='card-title mb-3'>📋 Jogos Cadastrados</h5>
+      <div class='table-responsive'>
+        <table class='table table-hover'>
+          <thead class='table-dark'>
+            <tr>
+              <th>Data</th>
+              <th>Adversário</th>
+              <th>Placar</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for jogo in jogos %}
+            <tr>
+              <td>{{ jogo.data.strftime('%d/%m/%Y') }}</td>
+              <td>{{ jogo.adversario or '-' }}</td>
+              <td>
+                {% if jogo.resumo_texto %}
+                  <strong>{{ jogo.resumo_texto }}</strong>
+                {% else %}
+                  <em class="text-muted">Não registrado</em>
+                {% endif %}
+              </td>
+              <td>
+                <a href='/teste-placar/{{ jogo.id }}' class='btn btn-sm btn-outline-primary'>
+                  {% if jogo.resumo_texto %}✏️ Editar{% else %}📝 Registrar{% endif %}
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted">
+                <em>Nenhum jogo cadastrado</em>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

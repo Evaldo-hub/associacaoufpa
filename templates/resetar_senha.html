@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-body">
+          <h3 class="card-title text-center mb-4">🔑 Resetar Senha</h3>
+          
+          <!-- Formulário para resetar senha -->
+          <form method="post" action="/resetar-senha-usuario">
+            <div class="mb-3">
+              <label for="senha_atual" class="form-label">Senha Atual</label>
+              <input type="password" class="form-control" id="senha_atual" name="senha_atual" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="nova_senha" class="form-label">Nova Senha</label>
+              <input type="password" class="form-control" id="nova_senha" name="nova_senha" required minlength="6">
+              <div class="form-text">Mínimo 6 caracteres</div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="confirmar_senha" class="form-label">Confirmar Nova Senha</label>
+              <input type="password" class="form-control" id="confirmar_senha" name="confirmar_senha" required minlength="6">
+            </div>
+            
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">🔄 Resetar Senha</button>
+            </div>
+          </form>
+          
+          <!-- Formulário para resetar senha de outros usuários (admin) -->
+          {% if current_user.is_admin() %}
+          <hr class="my-4">
+          <h5 class="text-center">🔐 Resetar Senha de Outro Usuário (Admin)</h5>
+          
+          <form method="post" action="/resetar-senha-admin">
+            <div class="mb-3">
+              <label for="usuario_id" class="form-label">Usuário</label>
+              <select class="form-select" id="usuario_id" name="usuario_id" required>
+                <option value="">Selecione um usuário...</option>
+                {% for usuario in usuarios %}
+                <option value="{{ usuario.id }}">{{ usuario.username }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label for="nova_senha_admin" class="form-label">Nova Senha</label>
+              <input type="password" class="form-control" id="nova_senha_admin" name="nova_senha" required minlength="6">
+              <div class="form-text">Mínimo 6 caracteres</div>
+            </div>
+            
+            <div class="d-grid">
+              <button type="submit" class="btn btn-warning">🔐 Resetar Senha do Usuário</button>
+            </div>
+          </form>
+          {% endif %}
+          
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Botão voltar -->
+  <div class="text-center mt-3">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+      ← Voltar
+    </a>
+  </div>
+</div>
+{% endblock %}
