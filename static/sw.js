@@ -1,18 +1,19 @@
-const CACHE_NAME = "associacao-v1";
+const CACHE_NAME = "associacao-v2";
 
 const URLS_TO_CACHE = [
-  "/",
   "/login",
-  "/static/css/bootstrap.min.css",
-  "/static/js/bootstrap.bundle.min.js"
+  "/static/imagem.jpg"
 ];
 
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(URLS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(URLS_TO_CACHE))
   );
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener("fetch", event => {
