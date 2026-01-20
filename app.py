@@ -19,16 +19,32 @@ from functools import wraps
 
 # ================= CONFIGURAÇÃO =================
 app = Flask(__name__, static_folder='static')
-# Configuração simples - pode ser melhorada com config.py no futuro
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///associacao.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configuração de cookies para AJAX
+app.config['SECRET_KEY'] = os.environ.get(
+    'SECRET_KEY',
+    'dev-secret-key-change-in-production'
+)
+
+# ================= BANCO DE DADOS =================
+db_url = os.environ.get("DATABASE_URL")
+
+# Permite rodar local com SQLite
+if not db_url:
+    db_url = "sqlite:///local.db"
+    print("⚠️ DATABASE_URL não encontrada. Usando SQLite local.")
+
+# Corrige padrão antigo do Render
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Cookies
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 
-# Configurar logging
+# ================= LOG =================
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -37,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 db = SQLAlchemy(app)
 
-# ================= CONFIGURAÇÃO LOGIN =================
+# ================= LOGIN =================
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -47,30 +63,50 @@ login_manager.login_message_category = 'info'
 # ================= MODELOS =================
 
 class User(UserMixin, db.Model):
-    """Modelo para usuários do sistema"""
+    __tablename__ = "user"  # explícito (boa prática)
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='visualizador')  # admin / visualizador
-    jogador_id = db.Column(db.Integer, db.ForeignKey('jogador.id'), nullable=True)  # Relação com jogador
+    role = db.Column(db.String(20), nullable=False, default='visualizador')
+    jogador_id = db.Column(db.Integer, db.ForeignKey('jogador.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-    
-    # Relacionamento
-    jogador = db.relationship('Jogador', backref=db.backref('user', uselist=False), foreign_keys=[jogador_id])
-    
+
+    jogador = db.relationship(
+        'Jogador',
+        backref=db.backref('user', uselist=False),
+        foreign_keys=[jogador_id]
+    )
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-    
+
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-    
+
     def is_admin(self):
         return self.role == 'admin'
-    
+
     def __repr__(self):
         return f'<User {self.username}>'
+
+# ================= CRIAÇÃO DAS TABELAS =================
+with app.app_context():
+    db.create_all()
+
+    # Cria admin padrão se não existir
+    if not User.query.filter_by(username="admin").first():
+        admin = User(
+            username="admin",
+            email="admin@admin.com",
+            role="admin"
+        )
+        admin.set_password("@admin1974")
+        db.session.add(admin)
+        db.session.commit()
+        logger.info("✅ Usuário admin criado com sucesso")
 
 @login_manager.user_loader
 def load_user(user_id):
