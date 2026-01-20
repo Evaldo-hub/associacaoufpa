@@ -92,21 +92,7 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.username}>'
 
-# ================= CRIAÇÃO DAS TABELAS =================
-with app.app_context():
-    db.create_all()
 
-    # Cria admin padrão se não existir
-    if not User.query.filter_by(username="admin").first():
-        admin = User(
-            username="admin",
-            email="admin@admin.com",
-            role="admin"
-        )
-        admin.set_password("@admin1974")
-        db.session.add(admin)
-        db.session.commit()
-        logger.info("✅ Usuário admin criado com sucesso")
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -195,6 +181,22 @@ class Auditoria(db.Model):
     
     def __repr__(self):
         return f'<Auditoria {self.acao} - {self.data_hora}>'
+
+# ================= INICIALIZAÇÃO DO BANCO =================
+with app.app_context():
+    db.create_all()
+
+    # Cria admin padrão se não existir
+    if not User.query.filter_by(username="admin").first():
+        admin = User(
+            username="admin",
+            email="admin@admin.com",
+            role="admin"
+        )
+        admin.set_password("@admin1974")
+        db.session.add(admin)
+        db.session.commit()
+        logger.info("✅ Usuário admin criado com sucesso")
 
 # ================= VALIDAÇÕES E UTILITÁRIOS =================
 
