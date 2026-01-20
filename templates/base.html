@@ -1,81 +1,19 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Associação Esportiva{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .card { border-radius: 12px; border: none; }
-    .table-responsive { border-radius: 12px; overflow: hidden; }
-    .alert { margin-top: 1rem; }
-    .navbar-brand img { 
-      vertical-align: middle; 
-      border-radius: 50%; 
-    }
-  </style>
-</head>
-<body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow">
-  <div class="container">
-    <a class="navbar-brand fw-bold" href="/">
-      <img src="/static/imagem.jpg" alt="Logo" width="30" height="30" class="me-2">
-      🏆 ASSOCIAÇÃO
-    </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <div class="navbar-nav">
-        <a class="nav-link" href="/">🏠 Início</a>
-        <a class="nav-link" href="/jogadores">Atletas</a>
-        <a class="nav-link" href="/associados">Mensalidades</a>
-        <a class="nav-link" href="/jogos">Jogos</a>
-        <a class="nav-link" href="/placares">📊 Placares</a>
-        <a class="nav-link" href="/financeiro">Caixa</a>
-        {% if current_user.is_admin() %}
-        <a class="nav-link" href="/gerenciar-usuarios">👥 Usuários</a>
-        {% endif %}
-        <a class="nav-link" href="/ranking">🏆 Ranking</a>
-      </div>
-      <div class="navbar-nav ms-auto">
-        <div class="navbar-text d-flex align-items-center">
-          {% if current_user.is_authenticated %}
-          <span class="me-3">
-            {% if current_user.is_admin() %}
-            🛡️ <strong>{{ current_user.username }}</strong> (Admin)
-            {% else %}
-            ⚽ <strong>{{ current_user.username }}</strong> (Jogador)
-            {% endif %}
-          </span>
-          <a href="/resetar-senha" class="btn btn-sm btn-outline-warning me-2" title="Resetar Senha">
-            🔑
-          </a>
-          <a href="/logout" class="btn btn-sm btn-outline-light">🚪 Sair</a>
-          {% else %}
-          <a href="/cadastrar-senha-socio" class="btn btn-sm btn-success me-2">🔐 Cadastrar Senha</a>
-          <a href="/login" class="btn btn-sm btn-primary">🔑 Entrar</a>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-</nav>
-<div class="container">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-  
-  {% block content %}{% endblock %}
-</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ================= PWA: SERVICE WORKER ================= -->
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/static/sw.js")
+      .then(reg => console.log("✅ Service Worker registrado:", reg.scope))
+      .catch(err => console.error("❌ Erro no Service Worker:", err));
+  });
+}
+</script>
+<!-- ======================================================= -->
+
 {% block scripts %}{% endblock %}
+
 </body>
 </html>
