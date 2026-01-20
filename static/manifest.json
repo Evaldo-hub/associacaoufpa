@@ -1,8 +1,11 @@
 {
-  "name": "Associação Esportiva",
-  "short_name": "Associação",
-  "start_url": "/",
+  "background_color": "#ffffff",
+  "dir": "ltr",
   "display": "standalone",
-  "theme_color": "#0d6efd",
-  "background_color": "#ffffff"
+  "name": "associacao-ced4.onrender",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "associacao-ced4.onrender",
+  "start_url": "/",
+  "theme_color": "#ffffff"
 }
