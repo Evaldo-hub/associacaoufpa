@@ -25,6 +25,11 @@ app.config['SECRET_KEY'] = os.environ.get(
     'dev-secret-key-change-in-production'
 )
 
+# ================= ROTAS PWA =================
+@app.route("/manifest.json")
+def manifest():
+    return app.send_static_file("manifest.json")
+
 # ================= BANCO DE DADOS =================
 db_url = os.environ.get("DATABASE_URL")
 
