@@ -572,11 +572,15 @@ def presencas(jogo_id):
     # Buscar todos os jogadores para o select de adicionar
     todos_jogadores = Jogador.query.order_by(Jogador.nome).all()
     
+    # Criar conjunto de IDs de jogadores já no jogo para filtro
+    jogadores_no_jogo = set(p.jogador_id for p in participacoes)
+    
     return render_template('presencas.html', 
                          jogo=jogo, 
                          participacoes=participacoes,
                          participacoes_existentes=participacoes_existentes,
                          todos_jogadores=todos_jogadores,
+                         jogadores_no_jogo=jogadores_no_jogo,
                          total_arrecadado=total_arrecadado,
                          total_despesas=total_despesas,
                          total_confirmados=total_confirmados,
