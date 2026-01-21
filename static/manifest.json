@@ -1,7 +1,7 @@
 {
   "name": "Associação Esportiva UFPA",
   "short_name": "AssocUFPA",
-  "start_url": "/pwa/",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
