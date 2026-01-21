@@ -25,6 +25,11 @@ app.config['SECRET_KEY'] = os.environ.get(
     'dev-secret-key-change-in-production'
 )
 
+# ================= ROTAS PWA =================
+@app.route("/manifest.json")
+def manifest():
+    return app.send_static_file("manifest.json")
+
 # ================= BANCO DE DADOS =================
 db_url = os.environ.get("DATABASE_URL")
 
@@ -225,32 +230,30 @@ def validar_tipo_jogador(tipo):
     return tipo
 
 # ================= ROTAS =================
+@app.route('/pwa/')
+def pwa_entry():
+    return redirect(url_for('login'))
 
-@app.route('/login', methods=['GET', 'POST'])
+
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    """Página de login do sistema"""
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
-        
-        if not username or not password:
-            flash('Por favor, preencha todos os campos', 'danger')
-            return render_template('login.html')
-        
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
         user = User.query.filter_by(username=username).first()
-        
-        if user and user.check_password(password) and user.is_active:
+
+        if user and user.check_password(password):
             login_user(user)
-            flash(f'Bem-vindo, {user.username}!', 'success')
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
-        else:
-            flash('Usuário ou senha incorretos', 'danger')
-    
-    return render_template('login.html')
+            return redirect(request.args.get("next") or url_for("index"))
+
+        flash("Usuário ou senha inválidos", "danger")
+
+    return render_template("login.html")
+
 
 @app.route('/logout')
 @login_required
