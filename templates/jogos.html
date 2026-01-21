@@ -1,8 +1,12 @@
-{% if current_user.is_admin() %}
+{% extends "base.html" %}
+
+{% block content %}
+<h3 class="mb-3">⚽ Gestão de Jogos</h3>
+
+{# ================= FORMULÁRIO (APENAS ADMIN) ================= #}
+{% if current_user.is_authenticated and current_user.is_admin %}
 <div class="card p-3 mb-4 shadow-sm">
-
   <form method="post" action="{{ url_for('jogos') }}" class="row g-2">
-
 
     <div class="col-12 col-md-2">
       <input type="date" name="data" class="form-control" required>
@@ -15,14 +19,19 @@
     <div class="col-12 col-md-3">
       <div class="input-group">
         <input name="local" id="local-input" placeholder="Local" class="form-control">
-        <button type="button" class="btn btn-outline-secondary"
-                onclick="buscarLocalizacao()">📍</button>
+        <button type="button"
+                class="btn btn-outline-secondary"
+                onclick="buscarLocalizacao()">
+          📍
+        </button>
       </div>
     </div>
 
     <div class="col-12 col-md-2">
-      <input type="number" step="0.01" min="0" name="valor_jogo"
-             placeholder="Valor sugerido" class="form-control">
+      <input type="number" step="0.01" min="0"
+             name="valor_jogo"
+             placeholder="Valor sugerido"
+             class="form-control">
     </div>
 
     <div class="col-12 col-md-1 d-grid">
@@ -30,14 +39,63 @@
     </div>
 
   </form>
-
 </div>
 {% endif %}
 
+{# ================= MOBILE (CARDS) ================= #}
+<div class="d-block d-md-none">
+  {% for jogo in jogos %}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-body">
 
-<div class='table-responsive bg-white shadow-sm'>
-  <table class='table table-hover mb-0'>
-    <thead class='table-dark'>
+      <h5 class="card-title mb-1">
+        {{ jogo.adversario or 'Sem adversário' }}
+      </h5>
+
+      <p class="mb-1">
+        📅 {{ jogo.data.strftime('%d/%m/%Y') }}
+      </p>
+
+      {% if jogo.local %}
+      <p class="mb-2">
+        📍
+        <a href="https://www.google.com/maps/search/{{ jogo.local|urlencode }}"
+           target="_blank">
+           {{ jogo.local }}
+        </a>
+      </p>
+      {% endif %}
+
+      <div class="d-grid gap-2">
+        <a href="/presencas/{{ jogo.id }}"
+           class="btn btn-outline-primary">
+          Presenças / Pagamento
+        </a>
+
+        {% if current_user.is_authenticated and current_user.is_admin and not jogo.resumo_texto %}
+        <a href="/teste-placar/{{ jogo.id }}"
+           class="btn btn-outline-success">
+          📊 Placar
+        </a>
+        {% endif %}
+
+        <a href="/pdf-partida/{{ jogo.id }}"
+           class="btn btn-danger">
+          📄 PDF
+        </a>
+      </div>
+
+    </div>
+  </div>
+  {% else %}
+    <p class="text-muted text-center">Nenhum jogo cadastrado</p>
+  {% endfor %}
+</div>
+
+{# ================= DESKTOP (TABELA) ================= #}
+<div class="table-responsive bg-white shadow-sm d-none d-md-block">
+  <table class="table table-hover mb-0">
+    <thead class="table-dark">
       <tr>
         <th>Data</th>
         <th>Adversário</th>
@@ -52,50 +110,62 @@
         <td>{{ jogo.adversario or '-' }}</td>
         <td>
           {% if jogo.local %}
-            <a href='https://www.google.com/maps/search/{{ jogo.local|urlencode }}' target='_blank' class='text-decoration-none' title='Ver no Google Maps'>
-              {{ jogo.local }} 📍
-            </a>
+          <a href="https://www.google.com/maps/search/{{ jogo.local|urlencode }}"
+             target="_blank">
+            {{ jogo.local }} 📍
+          </a>
           {% else %}
             -
           {% endif %}
         </td>
         <td>
-          <a href='/presencas/{{ jogo.id }}' class='btn btn-sm btn-outline-primary'>Presenças/Pagos</a>
-          {% if current_user.is_admin() %}
-            {% if not jogo.resumo_texto %}
-              <a href='/teste-placar/{{ jogo.id }}' class='btn btn-sm btn-outline-success'>📊 Placar</a>
-            {% endif %}
+          <a href="/presencas/{{ jogo.id }}"
+             class="btn btn-sm btn-outline-primary">
+            Presenças
+          </a>
+
+          {% if current_user.is_authenticated and current_user.is_admin and not jogo.resumo_texto %}
+          <a href="/teste-placar/{{ jogo.id }}"
+             class="btn btn-sm btn-outline-success">
+            📊
+          </a>
           {% endif %}
-          <a href='/pdf-partida/{{ jogo.id }}' class='btn btn-sm btn-danger'>📄 PDF</a>
+
+          <a href="/pdf-partida/{{ jogo.id }}"
+             class="btn btn-sm btn-danger">
+            📄
+          </a>
         </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="4" class="text-center text-muted">Nenhum jogo cadastrado</td>
+        <td colspan="4" class="text-center text-muted">
+          Nenhum jogo cadastrado
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
 function buscarLocalizacao() {
-  const local = document.getElementById('local-input').value;
-  if (local.trim()) {
-    window.open(`https://www.google.com/maps/search/${encodeURIComponent(local)}`, '_blank');
-  } else {
-    alert('Digite um local para buscar no Google Maps');
-  }
-}
+  const input = document.getElementById('local-input');
+  if (!input) return;
 
-// Adicionar sugestões de autocomplete
-document.getElementById('local-input').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    buscarLocalizacao();
+  const local = input.value.trim();
+  if (!local) {
+    alert('Digite um local');
+    return;
   }
-});
+
+  window.open(
+    'https://www.google.com/maps/search/' + encodeURIComponent(local),
+    '_blank'
+  );
+}
 </script>
 {% endblock %}
