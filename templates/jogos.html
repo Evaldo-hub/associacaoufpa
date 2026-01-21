@@ -1,33 +1,38 @@
-{% extends "base.html" %}
-
-{% block content %}
-<h3>⚽ Gestão de Jogos</h3>
 {% if current_user.is_admin() %}
-<div class='card p-3 mb-4 shadow-sm'>
-  <form method='post' class='row g-2'>
-    <div class='col-md-2'>
-      <input type='date' name='data' class='form-control' required>
+<div class="card p-3 mb-4 shadow-sm">
+
+  <form method="post" class="row g-2">
+
+    <div class="col-12 col-md-2">
+      <input type="date" name="data" class="form-control" required>
     </div>
-    <div class='col-md-4'>
-      <input name='adversario' placeholder='Adversário' class='form-control' required>
+
+    <div class="col-12 col-md-4">
+      <input name="adversario" placeholder="Adversário" class="form-control" required>
     </div>
-    <div class='col-md-3'>
-      <div class='input-group'>
-        <input name='local' id='local-input' placeholder='Local' class='form-control'>
-        <button type='button' class='btn btn-outline-secondary' onclick='buscarLocalizacao()' title='Buscar no Google Maps'>
-          📍
-        </button>
+
+    <div class="col-12 col-md-3">
+      <div class="input-group">
+        <input name="local" id="local-input" placeholder="Local" class="form-control">
+        <button type="button" class="btn btn-outline-secondary"
+                onclick="buscarLocalizacao()">📍</button>
       </div>
     </div>
-    <div class='col-md-2'>
-      <input type='number' step='0.01' min='0' name='valor_jogo' placeholder='Valor Sugerido' class='form-control'>
+
+    <div class="col-12 col-md-2">
+      <input type="number" step="0.01" min="0" name="valor_jogo"
+             placeholder="Valor sugerido" class="form-control">
     </div>
-    <div class='col-md-1'>
-      <button class='btn btn-success w-100'>+</button>
+
+    <div class="col-12 col-md-1 d-grid">
+      <button class="btn btn-success">Cadastrar</button>
     </div>
+
   </form>
+
 </div>
 {% endif %}
+
 
 <div class='table-responsive bg-white shadow-sm'>
   <table class='table table-hover mb-0'>

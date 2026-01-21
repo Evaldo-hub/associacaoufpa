@@ -120,9 +120,99 @@
   {% endif %}
 {% endif %}
 {% endif %}
+<form method='post' novalidate>
+
+  <!-- MOBILE - Cards de Jogadores -->
+  <div class="d-md-none">
+
+    {% for p in participacoes_existentes.values() %}
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+
+        <h6 class="mb-1">{{ p.jogador.nome }}</h6>
+        <small class="text-muted">{{ p.jogador.tipo }}</small>
+
+        {% if p.jogador.nativo %}
+          <span class="badge bg-info ms-2">🏠 Nativo</span>
+        {% endif %}
+
+        <hr>
+
+        <div class="mb-2">
+          {% if p.pagou %}
+            <span class="badge bg-success">✅ Pago</span>
+          {% else %}
+            <span class="badge bg-warning">⏳ Não pago</span>
+          {% endif %}
+        </div>
+
+        {% if current_user.is_admin() or current_user.jogador_id == p.jogador.id %}
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox"
+                 name="confirmou_{{ p.id }}"
+                 {% if p.confirmou %}checked{% endif %}>
+          <label class="form-check-label">Confirmou presença</label>
+        </div>
+        {% endif %}
+
+        {% if current_user.is_admin() %}
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox"
+                 name="pagou_{{ p.id }}"
+                 {% if p.pagou %}checked{% endif %}>
+          <label class="form-check-label">Pagamento realizado</label>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Valor pago</label>
+          <input type="number" step="0.01" min="0"
+                 name="valor_{{ p.id }}"
+                 value="{{ '%.2f'|format(p.valor_pago) }}"
+                 class="form-control">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">⚽ Gols</label>
+          <input type="number" min="0"
+                 name="gols_{{ p.id }}"
+                 value="{{ p.gols or 0 }}"
+                 class="form-control text-center">
+        </div>
+
+        <div class="form-check mb-2">
+          <input class="form-check-input" type="checkbox"
+                 name="expulso_{{ p.id }}"
+                 {% if p.expulso %}checked{% endif %}>
+          <label class="form-check-label">🟥 Expulso</label>
+        </div>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="radio"
+                 name="craque_id"
+                 value="{{ p.jogador.id }}"
+                 {% if jogo.craque_id == p.jogador.id %}checked{% endif %}>
+          <label class="form-check-label">⭐ Craque do jogo</label>
+        </div>
+
+        {% if current_user.is_admin() %}
+        <div class="d-grid">
+          <button formaction="{{ url_for('remover_jogador_partida', jogo_id=jogo.id, jogador_id=p.jogador.id) }}"
+                  formmethod="post"
+                  class="btn btn-danger"
+                  {% if p.lancado_financeiro %}disabled{% endif %}>
+            🗑️ Remover jogador
+          </button>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
 
 <form method='post' novalidate>
-  <div class='table-responsive shadow-sm bg-white mb-3'>
+  <div class='table-responsive shadow-sm bg-white mb-3 d-none d-md-block'>
     <table class='table table-sm table-hover align-middle'>
       <thead class='table-secondary'>
         <tr>
@@ -323,11 +413,20 @@
   </div>
   {% endif %}
   
-  <button class='btn btn-primary btn-lg shadow'>Salvar Alterações Financeiras</button>
-  <a href='/pdf-partida/{{ jogo.id }}' class='btn btn-danger btn-lg'>
+  <div class="d-grid gap-2 d-md-block">
+  <button class="btn btn-primary btn-lg shadow mb-2">
+    💾 Salvar Alterações
+  </button>
+
+  <a href="/pdf-partida/{{ jogo.id }}" class="btn btn-danger btn-lg mb-2">
     📄 Gerar PDF
   </a>
-  <a href='/jogos' class='btn btn-secondary btn-lg'>Voltar</a>
+
+  <a href="/jogos" class="btn btn-secondary btn-lg">
+    ⬅️ Voltar
+  </a>
+</div>
+
 </form>
 
 <!-- Select2 para busca dinâmica -->
