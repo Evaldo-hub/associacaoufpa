@@ -36,7 +36,7 @@ db_url = os.environ.get("DATABASE_URL")
 # Permite rodar local com SQLite
 if not db_url:
     db_url = "sqlite:///local.db"
-    print("DATABASE_URL nao encontrada. Usando SQLite local.")
+    print("⚠️ DATABASE_URL não encontrada. Usando SQLite local.")
 
 # Corrige padrão antigo do Render
 if db_url.startswith("postgres://"):
@@ -287,7 +287,7 @@ def index():
         
         # Próximo jogo
         proximo_jogo = Jogo.query.filter(
-            Jogo.data > date.today()
+            Jogo.data >= date.today()
         ).order_by(Jogo.data.asc()).first()
         
         # Calcular dias até o próximo jogo
@@ -1314,17 +1314,40 @@ def pdf_mensalidades():
             if ano not in dados_socios[mens.jogador_id]['anos']:
                 dados_socios[mens.jogador_id]['anos'][ano] = {}
             
-            # Extrair mês do formato "MM/YYYY"
+            # Extrair mês do formato "MM/YYYY" ou "Mês/YYYY"
             mes_ref = mens.mes_referencia or ''
+            mes_num = ''
             if '/' in mes_ref:
-                mes_num = mes_ref.split('/')[0]
-                mes_nome = {
-                    '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
-                    '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
-                    '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez'
-                }.get(mes_num, mes_num)
+                mes_nome_completo = mes_ref.split('/')[0]
+                
+                # Mapeamento de nomes para números
+                nome_para_num = {
+                    'Janeiro': '01', 'Fevereiro': '02', 'Março': '03', 'Marco': '03',
+                    'Abril': '04', 'Maio': '05', 'Junho': '06', 'Julho': '07',
+                    'Agosto': '08', 'Setembro': '09', 'Outubro': '10', 'Novembro': '11', 'Dezembro': '12'
+                }
+                
+                # Verificar se é nome do mês ou número
+                if mes_nome_completo in nome_para_num:
+                    mes_num = nome_para_num[mes_nome_completo]
+                    mes_nome = {
+                        '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
+                        '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
+                        '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez'
+                    }.get(mes_num, mes_num)
+                elif len(mes_nome_completo) == 2 and mes_nome_completo.isdigit():
+                    mes_num = mes_nome_completo
+                    mes_nome = {
+                        '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
+                        '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
+                        '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez'
+                    }.get(mes_num, mes_num)
+                else:
+                    mes_num = mes_nome_completo
+                    mes_nome = mes_nome_completo
             else:
                 mes_nome = mes_ref
+                mes_num = ''  # Define como vazio se não conseguir extrair
             
             dados_socios[mens.jogador_id]['anos'][ano][mes_num] = {
                 'nome': mes_nome,
