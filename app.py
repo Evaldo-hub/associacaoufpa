@@ -36,7 +36,7 @@ db_url = os.environ.get("DATABASE_URL")
 # Permite rodar local com SQLite
 if not db_url:
     db_url = "sqlite:///local.db"
-    print("⚠️ DATABASE_URL não encontrada. Usando SQLite local.")
+    print("DATABASE_URL nao encontrada. Usando SQLite local.")
 
 # Corrige padrão antigo do Render
 if db_url.startswith("postgres://"):
