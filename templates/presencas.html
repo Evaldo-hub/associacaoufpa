@@ -69,7 +69,7 @@
           <select name="novo_jogador_id" id="novo_jogador" class="form-control">
             <option value="">Buscar jogador...</option>
             {% for jogador in todos_jogadores %}
-              {% if jogador.id not in participacoes_existentes %}
+              {% if jogador.id not in jogadores_no_jogo %}
                 <option value="{{ jogador.id }}">{{ jogador.nome }} ({{ jogador.tipo }})</option>
               {% endif %}
             {% endfor %}
