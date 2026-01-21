@@ -62,8 +62,8 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = 'Por favor, faça login para acessar esta página.'
-login_manager.login_message_category = 'info'
+login_manager.login_message = None
+
 
 # ================= MODELOS =================
 
@@ -230,15 +230,17 @@ def validar_tipo_jogador(tipo):
     return tipo
 
 # ================= ROTAS =================
+# ================= ROTAS =================
+
 @app.route('/pwa/')
 def pwa_entry():
-    return redirect(url_for('login'))
+    return redirect('/login/')
 
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login/", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect('/')
 
     if request.method == "POST":
         username = request.form["username"]
@@ -248,20 +250,20 @@ def login():
 
         if user and user.check_password(password):
             login_user(user)
-            return redirect(request.args.get("next") or url_for("index"))
+            return redirect(request.args.get("next") or '/')
 
         flash("Usuário ou senha inválidos", "danger")
 
     return render_template("login.html")
 
 
-@app.route('/logout')
+@app.route('/logout/')
 @login_required
 def logout():
-    """Logout do sistema"""
     logout_user()
     flash('Você saiu do sistema com sucesso!', 'info')
-    return redirect(url_for('login'))
+    return redirect('/login/')
+
 
 @app.route('/')
 @login_required
