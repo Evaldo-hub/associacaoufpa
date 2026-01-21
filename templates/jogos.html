@@ -1,7 +1,8 @@
 {% if current_user.is_admin() %}
 <div class="card p-3 mb-4 shadow-sm">
 
-  <form method="post" class="row g-2">
+  <form method="post" action="{{ url_for('jogos') }}" class="row g-2">
+
 
     <div class="col-12 col-md-2">
       <input type="date" name="data" class="form-control" required>
