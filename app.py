@@ -336,7 +336,8 @@ def index():
                              artilharia=[],
                              proximo_jogo=None)
 
-@app.route('/jogos/', methods=['GET', 'POST'])
+@app.route('/jogos', methods=['GET', 'POST'], strict_slashes=False)
+@app.route('/jogos/', methods=['GET', 'POST'], strict_slashes=False)
 @login_required
 def jogos():
     """Lista e cria jogos"""
