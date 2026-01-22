@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class='d-flex justify-content-between align-items-center mb-4'>
+  <h3>📊 Extrato de Caixa</h3>
+  <a href='/pdf-caixa' class='btn btn-danger btn-lg'>
+    📄 Gerar PDF do Caixa
+  </a>
+</div>
+
+<!-- Filtro por Período -->
+<div class='card mb-4'>
+  <div class='card-header bg-primary text-white'>
+    <h5 class='mb-0'>📅 Filtrar por Período</h5>
+  </div>
+  <div class='card-body'>
+    <form method='get' action='/financeiro' class='row g-3'>
+      <div class='col-md-4'>
+        <label class='form-label'>Data Inicial</label>
+        <input type='date' name='data_inicio' class='form-control' 
+               value='{{ filtros.data_inicio or "" }}'>
+      </div>
+      <div class='col-md-4'>
+        <label class='form-label'>Data Final</label>
+        <input type='date' name='data_fim' class='form-control' 
+               value='{{ filtros.data_fim or "" }}'>
+      </div>
+      <div class='col-md-2'>
+        <label class='form-label'>Tipo</label>
+        <select name='tipo' class='form-control'>
+          <option value=''>Todos</option>
+          <option value='entradas' {% if filtros.tipo == 'entradas' %}selected{% endif %}>Apenas Entradas</option>
+          <option value='despesas' {% if filtros.tipo == 'despesas' %}selected{% endif %}>Apenas Despesas</option>
+        </select>
+      </div>
+      <div class='col-md-2'>
+        <label class='form-label'>&nbsp;</label>
+        <div class='d-flex gap-2'>
+          <button type='submit' class='btn btn-primary'>
+            🔍 Filtrar
+          </button>
+          <a href='/financeiro' class='btn btn-secondary'>
+            🔄 Limpar
+          </a>
+        </div>
+      </div>
+      <div class='col-md-4'>
+        <label class='form-label'>&nbsp;</label>
+        <div class='d-flex gap-2'>
+          {% if filtros.data_inicio or filtros.data_fim or filtros.tipo %}
+          <a href='/pdf-caixa-periodo?data_inicio={{ filtros.data_inicio or "" }}&data_fim={{ filtros.data_fim or "" }}&tipo={{ filtros.tipo or "" }}' 
+             class='btn btn-danger'>
+            📄 PDF do Período
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Formulários de Lançamento -->
+{% if current_user.is_admin() %}
+<div class='row mb-4'>
+  <div class='col-md-6'>
+    <div class='card border-success'>
+      <div class='card-header bg-success text-white'>
+        <h5 class='mb-0'>💰 Nova Entrada</h5>
+      </div>
+      <div class='card-body'>
+        <form method='post' action='/adicionar-entrada'>
+          <div class='mb-3'>
+            <label class='form-label'>Descrição</label>
+            <input type='text' name='descricao' class='form-control' required 
+                   placeholder='Ex: Doação, patrocínio, etc.'>
+          </div>
+          <div class='mb-3'>
+            <label class='form-label'>Valor</label>
+            <input type='number' step='0.01' min='0' name='valor' class='form-control' required 
+                   placeholder='R$ 0,00'>
+          </div>
+          <button type='submit' class='btn btn-success w-100'>
+            💰 Adicionar Entrada
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <div class='col-md-6'>
+    <div class='card border-danger'>
+      <div class='card-header bg-danger text-white'>
+        <h5 class='mb-0'>💸 Nova Despesa</h5>
+      </div>
+      <div class='card-body'>
+        <form method='post' action='/adicionar-despesa'>
+          <div class='mb-3'>
+            <label class='form-label'>Categoria</label>
+            <select name='categoria' class='form-control' required>
+              <option value=''>Selecione...</option>
+              <option value='ARBITRO'>Árbitro</option>
+              <option value='AGUA'>Água</option>
+              <option value='CAMPO'>Campo de Futebol</option>
+              <option value='TRANSPORTE'>Transporte</option>
+              <option value='LAVAGEM'>Lavagem</option>
+              <option value='ALIMENTACAO'>Alimentação</option>
+              <option value='MATERIAL'>Material</option>
+              <option value='OUTROS_SAIDA'>Outros</option>
+            </select>
+          </div>
+          <div class='mb-3'>
+            <label class='form-label'>Descrição</label>
+            <input type='text' name='descricao' class='form-control' required 
+                   placeholder='Descreva a despesa'>
+          </div>
+          <div class='mb-3'>
+            <label class='form-label'>Valor</label>
+            <input type='number' step='0.01' min='0' name='valor' class='form-control' required 
+                   placeholder='R$ 0,00'>
+          </div>
+          <button type='submit' class='btn btn-danger w-100'>
+            💸 Adicionar Despesa
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Resumo Financeiro -->
+<div class='row mb-4'>
+  <div class='col-md-4'>
+    <div class='card border-success'>
+      <div class='card-body text-center'>
+        <h6 class='card-title'>💰 Total Entradas</h6>
+        <h4 class='text-success'>R$ {{ "%.2f"|format(total_entradas) }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class='col-md-4'>
+    <div class='card border-danger'>
+      <div class='card-body text-center'>
+        <h6 class='card-title'>💸 Total Despesas</h6>
+        <h4 class='text-danger'>R$ {{ "%.2f"|format(total_despesas) }}</h4>
+      </div>
+    </div>
+  </div>
+  <div class='col-md-4'>
+    <div class='card {% if saldo_atual >= 0 %}border-success{% else %}border-danger{% endif %}'>
+      <div class='card-body text-center'>
+        <h6 class='card-title'>💵 Saldo Atual</h6>
+        <h4 class='{% if saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}'>
+          R$ {{ "%.2f"|format(saldo_atual) }}
+        </h4>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Link para Auditoria -->
+<div class='row mb-4'>
+  <div class='col-12'>
+    <a href='/auditoria' class='btn btn-outline-info btn-sm'>
+      🔍 Ver Auditoria de Extornos
+    </a>
+  </div>
+</div>
+
+<!-- Extrato Detalhado -->
+<div class='table-responsive bg-white shadow-sm'>
+  <table class='table table-hover'>
+    <thead class='table-dark'>
+      <tr>
+        <th>Data</th>
+        <th>Tipo</th>
+        <th>Descrição</th>
+        <th>Valor</th>
+        <th>Saldo Acumulado</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in movimentacoes %}
+      <tr>
+        <td>{{ item.mov.data.strftime('%d/%m/%Y') }}</td>
+        <td>
+          {% if item.mov.tipo == 'MENSALIDADE' %}
+            <span class="badge bg-success">Mensalidade</span>
+          {% elif item.mov.tipo == 'PARTIDA' %}
+            <span class="badge bg-info">Partida</span>
+          {% elif item.mov.tipo == 'ENTRADA' %}
+            <span class="badge bg-primary">Entrada</span>
+          {% else %}
+            <span class="badge bg-danger">Despesa</span>
+          {% endif %}
+        </td>
+        <td>{{ item.mov.descricao }}</td>
+        <td class='{% if item.mov.tipo == "DESPESA" %}text-danger{% else %}text-success{% endif %}'>
+          {% if item.mov.tipo == "DESPESA" %}-{% endif %}R$ {{ "%.2f"|format(item.mov.valor) }}
+        </td>
+        <td class='{% if item.saldo_acumulado < 0 %}text-danger{% else %}text-success{% endif %}'>
+          R$ {{ "%.2f"|format(item.saldo_acumulado) }}
+        </td>
+        <td>
+          {% if item.mov.tipo != 'MENSALIDADE' and item.mov.tipo != 'PARTIDA' %}
+          <button type="button" class="btn btn-sm btn-danger" 
+                  data-bs-toggle="modal" 
+                  data-bs-target="#modalExtorno{{ item.mov.id }}">
+            🗑️ Extornar
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="text-center text-muted">Nenhuma movimentação registrada</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modais de Extorno -->
+{% for item in movimentacoes %}
+{% if item.mov.tipo != 'MENSALIDADE' and item.mov.tipo != 'PARTIDA' %}
+<div class="modal fade" id="modalExtorno{{ item.mov.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Extorno</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="/extornar-movimentacao/{{ item.mov.id }}">
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <strong>Atenção:</strong> Esta ação não pode ser desfeita!
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><strong>Movimentação:</strong></label>
+            <div class="form-control-plaintext">
+              {{ item.mov.descricao }} - 
+              {% if item.mov.tipo == "DESPESA" %}-{% endif %}R$ {{ "%.2f"|format(item.mov.valor) }}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="motivo{{ item.mov.id }}" class="form-label">
+              <strong>Motivo do Extorno <span class="text-danger">*</span></strong>
+            </label>
+            <textarea class="form-control" id="motivo{{ item.mov.id }}" 
+                      name="motivo" rows="3" required 
+                      placeholder="Descreva o motivo do extorno..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">
+            🗑️ Confirmar Extorno
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% endblock %}
