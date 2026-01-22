@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>💰 Controle de Mensalidades</h3>
+<p class="text-muted">Gerencie as mensalidades de todos os sócios com visualização completa por mês e ano.</p>
+
+<!-- Formulário de Filtros -->
+<div class='card p-3 mb-4 shadow-sm'>
+  <h5 class="mb-3">🔍 Filtros</h5>
+  <form method='get' class='row g-3'>
+    <div class='col-md-3'>
+      <label class="form-label">Mês</label>
+      <select name='mes' class='form-select'>
+        <option value=''>Todos os meses</option>
+        {% for mes in meses %}
+        <option value='{{ mes }}' {% if filtros.mes == mes %}selected{% endif %}>{{ mes }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class='col-md-2'>
+      <label class="form-label">Ano</label>
+      <select name='ano' class='form-select'>
+        <option value=''>Todos os anos</option>
+        {% for ano in anos %}
+        <option value='{{ ano }}' {% if filtros.ano == ano|string %}selected{% endif %}>{{ ano }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class='col-md-3'>
+      <label class="form-label">Sócio</label>
+      <select name='socio_id' class='form-select'>
+        <option value=''>Todos os sócios</option>
+        {% for socio in socios %}
+        <option value='{{ socio.id }}' {% if filtros.socio_id == socio.id|string %}selected{% endif %}>{{ socio.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class='col-md-4 d-flex align-items-end gap-2'>
+      <button type='submit' class='btn btn-outline-primary'>
+        🔍 Filtrar
+      </button>
+      <a href='{{ url_for("associados") }}' class='btn btn-outline-secondary'>
+        🔄 Limpar
+      </a>
+      <a href='/pdf-mensalidades{% if filtros.ano %}?ano={{ filtros.ano }}{% endif %}' 
+         class='btn btn-danger'>
+        📥 Baixar PDF Mensalidades
+      </a>
+      {% if filtros.mes or filtros.ano or filtros.socio_id %}
+      <span class="badge bg-info align-self-center">
+        {{ mensalidades_por_socio.values() | list | length }} sócio(s) filtrado(s)
+      </span>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Formulário para incluir nova mensalidade -->
+{% if current_user.is_admin() %}
+<div class='card p-3 mb-4 shadow-sm'>
+  <h5 class="mb-3">➕ Incluir Nova Mensalidade</h5>
+  <form method='post' class='row g-3'>
+    <div class='col-md-3'>
+      <label class="form-label">Sócio</label>
+      <select name='jogador_id' class='form-select' required>
+        <option value=''>Selecione o sócio</option>
+        {% for socio in socios %}
+        <option value='{{ socio.id }}'>{{ socio.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class='col-md-2'>
+      <label class="form-label">Mês</label>
+      <select name='mes' class='form-select' required>
+        <option value=''>Mês</option>
+        <option value='Janeiro'>Janeiro</option>
+        <option value='Fevereiro'>Fevereiro</option>
+        <option value='Março'>Março</option>
+        <option value='Abril'>Abril</option>
+        <option value='Maio'>Maio</option>
+        <option value='Junho'>Junho</option>
+        <option value='Julho'>Julho</option>
+        <option value='Agosto'>Agosto</option>
+        <option value='Setembro'>Setembro</option>
+        <option value='Outubro'>Outubro</option>
+        <option value='Novembro'>Novembro</option>
+        <option value='Dezembro'>Dezembro</option>
+      </select>
+    </div>
+    <div class='col-md-2'>
+      <label class="form-label">Ano</label>
+      <input type='number' name='ano' min='2000' max='2100' 
+             id='ano_input'
+             class='form-control' required>
+    </div>
+    <div class='col-md-3'>
+      <label class="form-label">Valor R$</label>
+      <input type='number' step='0.01' min='0' name='valor' 
+             placeholder='0.00' class='form-control' required>
+    </div>
+    <div class='col-md-2 d-flex align-items-end'>
+      <button class='btn btn-primary w-100'>Lançar</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{% if not socios %}
+<div class="alert alert-warning">
+  <strong>Atenção:</strong> Nenhum sócio cadastrado. Cadastre jogadores do tipo "Sócio" primeiro.
+</div>
+{% else %}
+<!-- Tabela com todas as mensalidades -->
+<div class='card shadow-sm'>
+  <div class='card-body'>
+    <h5 class='card-title mb-3'>
+      📊 Mensalidades por Sócio
+      {% if filtros.mes or filtros.ano or filtros.socio_id %}
+      <small class="text-muted">(Filtrado)</small>
+      {% endif %}
+    </h5>
+    {% if mensalidades_por_socio %}
+    <div class='table-responsive'>
+      <table class='table table-hover table-bordered align-middle'>
+        <thead class='table-dark'>
+          <tr>
+            <th>Sócio</th>
+            <th>Mês/Ano</th>
+            <th>Valor Pago</th>
+            <th>Data de Lançamento</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for socio_id, dados in mensalidades_por_socio.items() %}
+            {% set socio = dados.socio %}
+            {% set mensalidades = dados.mensalidades %}
+            {% set total_pago = dados.total_pago %}
+            
+            {% if mensalidades %}
+              {% for mensalidade in mensalidades %}
+              <tr>
+                {% if loop.first %}
+                <td rowspan="{{ mensalidades|length }}" class="align-middle">
+                  <strong>{{ socio.nome }}</strong>
+                  <br>
+                  <small class="text-muted">Total: R$ {{ "%.2f"|format(total_pago) }}</small>
+                </td>
+                {% endif %}
+                <td>
+                  <span class="badge bg-info">{{ mensalidade.mes_referencia or 'N/A' }}</span>
+                </td>
+                <td class="text-success">
+                  <strong>R$ {{ "%.2f"|format(mensalidade.valor) }}</strong>
+                </td>
+                <td>
+                  <small>{{ mensalidade.data.strftime('%d/%m/%Y') }}</small>
+                </td>
+                <td>
+                  {% if current_user.is_admin() %}
+                  <form method="post" action="{{ url_for('extornar_mensalidade', mensalidade_id=mensalidade.id) }}" 
+                        onsubmit="return confirm('Tem certeza que deseja extornar esta mensalidade? Esta ação não pode ser desfeita.');" 
+                        style="display: inline;">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                      🗑️ Extornar
+                    </button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td><strong>{{ socio.nome }}</strong></td>
+                <td colspan="4" class="text-center text-muted">
+                  <em>Nenhuma mensalidade registrada</em>
+                </td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+        <tfoot class="table-secondary">
+          <tr>
+            <th colspan="2">Total Geral</th>
+            <th class="text-success">
+              R$ {{ "%.2f"|format(total_geral) }}
+            </th>
+            <th colspan="2"></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4">
+      <p class="text-muted">
+        {% if filtros.mes or filtros.ano or filtros.socio_id %}
+        <em>Nenhuma mensalidade encontrada com os filtros selecionados.</em>
+        {% else %}
+        <em>Nenhuma mensalidade registrada ainda.</em>
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Resumo por ano -->
+{% if anos %}
+<div class='card shadow-sm mt-4'>
+  <div class='card-body'>
+    <h5 class='card-title mb-3'>📅 Resumo por Ano</h5>
+    <div class='row'>
+      {% for ano in anos %}
+        {% set mensalidades_ano = [] %}
+        {% for socio_id, dados in mensalidades_por_socio.items() %}
+          {% for mensalidade in dados.mensalidades %}
+            {% if mensalidade.ano_referencia == ano %}
+              {% set _ = mensalidades_ano.append(mensalidade) %}
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+        {% set total_ano = mensalidades_ano | sum(attribute='valor') %}
+        <div class='col-md-3 mb-2'>
+          <div class='card border-primary'>
+            <div class='card-body text-center'>
+              <h6 class='card-title'>{{ ano }}</h6>
+              <p class='card-text'>
+                <strong class='text-success'>R$ {{ "%.2f"|format(total_ano) }}</strong>
+                <br>
+                <small class='text-muted'>{{ mensalidades_ano|length }} mensalidade(s)</small>
+              </p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Definir ano atual como padrão
+  document.addEventListener('DOMContentLoaded', function() {
+    const anoInput = document.getElementById('ano_input');
+    if (anoInput) {
+      const anoAtual = new Date().getFullYear();
+      anoInput.value = anoAtual;
+    }
+  });
+</script>
+{% endblock %}
