@@ -1509,7 +1509,7 @@ def pdf_mensalidades():
         buffer.seek(0)
         response = make_response(buffer.getvalue())
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'inline; filename=controle_mensalidades_{filtro_ano or "todos"}.pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=controle_mensalidades_{filtro_ano or "todos"}.pdf'
         
         return response
         
