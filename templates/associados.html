@@ -1,14 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h3>💰 Controle de Mensalidades</h3>
-<p class="text-muted">Gerencie as mensalidades de todos os sócios com visualização completa por mês e ano.</p>
+<!-- Cabeçalho Responsivo -->
+<div class='d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4'>
+  <div class='mb-3 mb-md-0'>
+    <h3 class='mb-1'>💰 Controle de Mensalidades</h3>
+    <p class="text-muted mb-0">Gerencie as mensalidades de todos os sócios com visualização completa por mês e ano.</p>
+  </div>
+</div>
 
 <!-- Formulário de Filtros -->
 <div class='card p-3 mb-4 shadow-sm'>
   <h5 class="mb-3">🔍 Filtros</h5>
   <form method='get' class='row g-3'>
-    <div class='col-md-3'>
+    <div class='col-12 col-md-3'>
       <label class="form-label">Mês</label>
       <select name='mes' class='form-select'>
         <option value=''>Todos os meses</option>
@@ -17,7 +22,7 @@
         {% endfor %}
       </select>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
       <label class="form-label">Ano</label>
       <select name='ano' class='form-select'>
         <option value=''>Todos os anos</option>
@@ -26,7 +31,7 @@
         {% endfor %}
       </select>
     </div>
-    <div class='col-md-3'>
+    <div class='col-12 col-md-3'>
       <label class="form-label">Sócio</label>
       <select name='socio_id' class='form-select'>
         <option value=''>Todos os sócios</option>
@@ -35,21 +40,25 @@
         {% endfor %}
       </select>
     </div>
-    <div class='col-md-4 d-flex align-items-end gap-2'>
-      <button type='submit' class='btn btn-outline-primary'>
-        🔍 Filtrar
-      </button>
-      <a href='{{ url_for("associados") }}' class='btn btn-outline-secondary'>
-        🔄 Limpar
-      </a>
-      <a href='/pdf-mensalidades{% if filtros.ano %}?ano={{ filtros.ano }}{% endif %}' 
-         class='btn btn-danger' target='_blank'>
-        📄 PDF Mensalidades
-      </a>
+    <div class='col-12 col-md-4'>
+      <div class='d-flex flex-column flex-sm-row gap-2 align-items-sm-end'>
+        <button type='submit' class='btn btn-outline-primary flex-fill flex-sm-grow-0'>
+          🔍 Filtrar
+        </button>
+        <a href='{{ url_for("associados") }}' class='btn btn-outline-secondary flex-fill flex-sm-grow-0'>
+          🔄 Limpar
+        </a>
+        <a href='/pdf-mensalidades{% if filtros.ano %}?ano={{ filtros.ano }}{% endif %}' 
+           class='btn btn-danger flex-fill flex-sm-grow-0'>
+          📥 Baixar PDF
+        </a>
+      </div>
       {% if filtros.mes or filtros.ano or filtros.socio_id %}
-      <span class="badge bg-info align-self-center">
-        {{ mensalidades_por_socio.values() | list | length }} sócio(s) filtrado(s)
-      </span>
+      <div class='mt-2'>
+        <span class="badge bg-info">
+          {{ mensalidades_por_socio.values() | list | length }} sócio(s) filtrado(s)
+        </span>
+      </div>
       {% endif %}
     </div>
   </form>
@@ -60,7 +69,7 @@
 <div class='card p-3 mb-4 shadow-sm'>
   <h5 class="mb-3">➕ Incluir Nova Mensalidade</h5>
   <form method='post' class='row g-3'>
-    <div class='col-md-3'>
+    <div class='col-12 col-md-3'>
       <label class="form-label">Sócio</label>
       <select name='jogador_id' class='form-select' required>
         <option value=''>Selecione o sócio</option>
@@ -69,7 +78,7 @@
         {% endfor %}
       </select>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
       <label class="form-label">Mês</label>
       <select name='mes' class='form-select' required>
         <option value=''>Mês</option>
@@ -87,18 +96,19 @@
         <option value='Dezembro'>Dezembro</option>
       </select>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
       <label class="form-label">Ano</label>
       <input type='number' name='ano' min='2000' max='2100' 
              id='ano_input'
              class='form-control' required>
     </div>
-    <div class='col-md-3'>
+    <div class='col-12 col-md-3'>
       <label class="form-label">Valor R$</label>
       <input type='number' step='0.01' min='0' name='valor' 
              placeholder='0.00' class='form-control' required>
     </div>
-    <div class='col-md-2 d-flex align-items-end'>
+    <div class='col-12 col-md-2'>
+      <label class="form-label d-md-none'>&nbsp;</label>
       <button class='btn btn-primary w-100'>Lançar</button>
     </div>
   </form>
@@ -121,14 +131,16 @@
     </h5>
     {% if mensalidades_por_socio %}
     <div class='table-responsive'>
-      <table class='table table-hover table-bordered align-middle'>
+      <table class='table table-hover table-bordered align-middle table-striped'>
         <thead class='table-dark'>
           <tr>
-            <th>Sócio</th>
-            <th>Mês/Ano</th>
-            <th>Valor Pago</th>
-            <th>Data de Lançamento</th>
-            <th>Ações</th>
+            <th class='d-none d-md-table-cell'>Sócio</th>
+            <th class='d-md-none'>Sócio</th>
+            <th class='d-none d-lg-table-cell'>Mês/Ano</th>
+            <th>Valor</th>
+            <th class='d-none d-md-table-cell'>Data</th>
+            <th class='text-center d-none d-lg-table-cell'>Ações</th>
+            <th class='text-center d-lg-none'>Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -141,22 +153,29 @@
               {% for mensalidade in mensalidades %}
               <tr>
                 {% if loop.first %}
-                <td rowspan="{{ mensalidades|length }}" class="align-middle">
+                <td rowspan="{{ mensalidades|length }}" class="align-middle d-none d-md-table-cell">
                   <strong>{{ socio.nome }}</strong>
                   <br>
                   <small class="text-muted">Total: R$ {{ "%.2f"|format(total_pago) }}</small>
                 </td>
                 {% endif %}
-                <td>
+                <td class='d-md-none'>
+                  <div class='border-bottom pb-2 mb-2'>
+                    <strong>{{ socio.nome }}</strong>
+                    <br>
+                    <small class="text-muted">Total: R$ {{ "%.2f"|format(total_pago) }}</small>
+                  </div>
+                </td>
+                <td class='d-none d-lg-table-cell'>
                   <span class="badge bg-info">{{ mensalidade.mes_referencia or 'N/A' }}</span>
                 </td>
                 <td class="text-success">
                   <strong>R$ {{ "%.2f"|format(mensalidade.valor) }}</strong>
                 </td>
-                <td>
+                <td class='d-none d-md-table-cell'>
                   <small>{{ mensalidade.data.strftime('%d/%m/%Y') }}</small>
                 </td>
-                <td>
+                <td class='text-center d-none d-lg-table-cell'>
                   {% if current_user.is_admin() %}
                   <form method="post" action="{{ url_for('extornar_mensalidade', mensalidade_id=mensalidade.id) }}" 
                         onsubmit="return confirm('Tem certeza que deseja extornar esta mensalidade? Esta ação não pode ser desfeita.');" 
@@ -167,12 +186,39 @@
                   </form>
                   {% endif %}
                 </td>
+                <td class='text-center d-lg-none'>
+                  {% if current_user.is_admin() %}
+                  <form method="post" action="{{ url_for('extornar_mensalidade', mensalidade_id=mensalidade.id) }}" 
+                        onsubmit="return confirm('Tem certeza que deseja extornar esta mensalidade? Esta ação não pode ser desfeita.');" 
+                        style="display: inline;">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                      🗑️
+                    </button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              <!-- Versão mobile com detalhes -->
+              <tr class='d-lg-none'>
+                <td colspan='3' class='p-2 bg-light'>
+                  <div class='small text-muted'>
+                    <strong>Mês/Ano:</strong> <span class="badge bg-info">{{ mensalidade.mes_referencia or 'N/A' }}</span><br>
+                    <strong>Data:</strong> {{ mensalidade.data.strftime('%d/%m/%Y') }}
+                  </div>
+                </td>
               </tr>
               {% endfor %}
             {% else %}
               <tr>
-                <td><strong>{{ socio.nome }}</strong></td>
-                <td colspan="4" class="text-center text-muted">
+                <td colspan="7"><strong>{{ socio.nome }}</strong></td>
+              </tr>
+              <tr class='d-lg-none'>
+                <td colspan='3' class='text-center text-muted py-3'>
+                  <em>Nenhuma mensalidade registrada</em>
+                </td>
+              </tr>
+              <tr class='d-none d-lg-table-row'>
+                <td colspan="6" class="text-center text-muted">
                   <em>Nenhuma mensalidade registrada</em>
                 </td>
               </tr>
@@ -181,11 +227,13 @@
         </tbody>
         <tfoot class="table-secondary">
           <tr>
-            <th colspan="2">Total Geral</th>
+            <th colspan="2" class='d-none d-md-table-cell'>Total Geral</th>
+            <th colspan="1" class='d-md-none d-lg-none'>Total Geral</th>
             <th class="text-success">
               R$ {{ "%.2f"|format(total_geral) }}
             </th>
-            <th colspan="2"></th>
+            <th colspan="4" class='d-none d-lg-table-cell'></th>
+            <th colspan="2" class='d-lg-none'></th>
           </tr>
         </tfoot>
       </table>
@@ -220,8 +268,8 @@
           {% endfor %}
         {% endfor %}
         {% set total_ano = mensalidades_ano | sum(attribute='valor') %}
-        <div class='col-md-3 mb-2'>
-          <div class='card border-primary'>
+        <div class='col-12 col-sm-6 col-lg-4 col-xl-3 mb-3'>
+          <div class='card border-primary h-100'>
             <div class='card-body text-center'>
               <h6 class='card-title'>{{ ano }}</h6>
               <p class='card-text'>
