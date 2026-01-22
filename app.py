@@ -409,8 +409,12 @@ def jogos():
 @login_required
 def presencas(jogo_id):
     """Gerencia presenças e pagamentos de um jogo"""
-    jogo = Jogo.query.get_or_404(jogo_id)
-    participacoes = Participacao.query.filter_by(jogo_id=jogo_id).all()
+    try:
+        # Forçar refresh do banco para garantir dados atualizados
+        forcar_refresh_banco()
+        
+        jogo = Jogo.query.get_or_404(jogo_id)
+        participacoes = Participacao.query.filter_by(jogo_id=jogo_id).all()
 
     if request.method == 'POST':
         try:
