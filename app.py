@@ -393,7 +393,12 @@ def jogos():
         
         # GET - Listar jogos
         lista_jogos = Jogo.query.order_by(Jogo.data.desc()).all()
-        return render_template('jogos.html', jogos=lista_jogos)
+        return render_template('jogos.html', 
+                             jogos=lista_jogos,
+                             data_atual=date.today().isoformat(),
+                             adversario_padrao="",
+                             local_padrao="Campo da UFPA",
+                             valor_jogo_padrao="20.00")
         
     except Exception as e:
         logger.error(f"Erro ao carregar jogos: {e}")
@@ -1031,7 +1036,13 @@ def jogadores():
         
         # GET - Listar jogadores
         jogadores = Jogador.query.order_by(Jogador.nome).all()
-        return render_template('jogadores.html', jogadores=jogadores)
+        return render_template('jogadores.html', 
+                             jogadores=jogadores,
+                             nome_padrao="",
+                             telefone_padrao="",
+                             tipo_padrao="SOCIO",
+                             ativo_padrao=True,
+                             nativo_padrao=False)
         
     except Exception as e:
         logger.error(f"Erro ao carregar lista de jogadores: {e}")
@@ -1264,7 +1275,10 @@ def associados():
                          anos=anos,
                          meses=meses,
                          total_geral=total_geral,
-                         filtros=filtros_atuais)
+                         filtros=filtros_atuais,
+                         ano_atual=date.today().year,
+                         mes_atual=date.today().strftime('%B'),
+                         valor_padrao="50.00")
 
 
 
@@ -2126,12 +2140,23 @@ def financeiro():
                 'saldo_acumulado': saldo_atual
             })
         
-        return render_template('financeiro.html', 
+        descricao_entrada_padrao = ""
+        valor_entrada_padrao = "100.00"
+        descricao_despesa_padrao = ""
+        valor_despesa_padrao = "50.00"
+        categoria_despesa_padrao = ""
+        
+        return render_template('financeiro.html',
                              movimentacoes=movimentacoes,
                              total_entradas=total_entradas,
                              total_despesas=total_despesas,
                              saldo_atual=saldo_atual,
-                             filtros=filtros)
+                             filtros=filtros,
+                             descricao_entrada_padrao=descricao_entrada_padrao,
+                             valor_entrada_padrao=valor_entrada_padrao,
+                             descricao_despesa_padrao=descricao_despesa_padrao,
+                             valor_despesa_padrao=valor_despesa_padrao,
+                             categoria_despesa_padrao=categoria_despesa_padrao)
     except Exception as e:
         logger.error(f"Erro ao carregar financeiro: {e}")
         flash('Erro ao carregar extrato financeiro', 'danger')
