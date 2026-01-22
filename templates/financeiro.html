@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class='d-flex justify-content-between align-items-center mb-4'>
-  <h3>📊 Extrato de Caixa</h3>
-  <a href='/pdf-caixa' class='btn btn-danger btn-lg'>
-    📄 Gerar PDF do Caixa
-  </a>
+<!-- Cabeçalho Responsivo -->
+<div class='d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4'>
+  <h3 class='mb-3 mb-md-0'>📊 Extrato de Caixa</h3>
+  <div class='d-flex flex-column flex-sm-row gap-2'>
+    <a href='/pdf-caixa' class='btn btn-danger flex-fill flex-sm-grow-0'>
+      📄 Gerar PDF do Caixa
+    </a>
+  </div>
 </div>
 
 <!-- Filtro por Período -->
@@ -15,17 +18,17 @@
   </div>
   <div class='card-body'>
     <form method='get' action='/financeiro' class='row g-3'>
-      <div class='col-md-4'>
+      <div class='col-12 col-md-3'>
         <label class='form-label'>Data Inicial</label>
         <input type='date' name='data_inicio' class='form-control' 
                value='{{ filtros.data_inicio or "" }}'>
       </div>
-      <div class='col-md-4'>
+      <div class='col-12 col-md-3'>
         <label class='form-label'>Data Final</label>
         <input type='date' name='data_fim' class='form-control' 
                value='{{ filtros.data_fim or "" }}'>
       </div>
-      <div class='col-md-2'>
+      <div class='col-12 col-md-2'>
         <label class='form-label'>Tipo</label>
         <select name='tipo' class='form-control'>
           <option value=''>Todos</option>
@@ -33,20 +36,24 @@
           <option value='despesas' {% if filtros.tipo == 'despesas' %}selected{% endif %}>Apenas Despesas</option>
         </select>
       </div>
-      <div class='col-md-2'>
-        <label class='form-label'>&nbsp;</label>
-        <div class='d-flex gap-2'>
-          <button type='submit' class='btn btn-primary'>
+      <div class='col-6 col-md-2'>
+        <label class='form-label d-md-none'>&nbsp;</label>
+        <div class='d-flex gap-2 h-100 align-items-end'>
+          <button type='submit' class='btn btn-primary flex-fill'>
             🔍 Filtrar
           </button>
-          <a href='/financeiro' class='btn btn-secondary'>
+        </div>
+      </div>
+      <div class='col-6 col-md-2'>
+        <label class='form-label d-md-none'>&nbsp;</label>
+        <div class='d-flex gap-2 h-100 align-items-end'>
+          <a href='/financeiro' class='btn btn-secondary flex-fill'>
             🔄 Limpar
           </a>
         </div>
       </div>
-      <div class='col-md-4'>
-        <label class='form-label'>&nbsp;</label>
-        <div class='d-flex gap-2'>
+      <div class='col-12 mt-3'>
+        <div class='d-flex justify-content-center justify-content-md-start'>
           {% if filtros.data_inicio or filtros.data_fim or filtros.tipo %}
           <a href='/pdf-caixa-periodo?data_inicio={{ filtros.data_inicio or "" }}&data_fim={{ filtros.data_fim or "" }}&tipo={{ filtros.tipo or "" }}' 
              class='btn btn-danger'>
@@ -62,8 +69,8 @@
 <!-- Formulários de Lançamento -->
 {% if current_user.is_admin() %}
 <div class='row mb-4'>
-  <div class='col-md-6'>
-    <div class='card border-success'>
+  <div class='col-12 col-lg-6 mb-3 mb-lg-0'>
+    <div class='card border-success h-100'>
       <div class='card-header bg-success text-white'>
         <h5 class='mb-0'>💰 Nova Entrada</h5>
       </div>
@@ -87,8 +94,8 @@
     </div>
   </div>
   
-  <div class='col-md-6'>
-    <div class='card border-danger'>
+  <div class='col-12 col-lg-6'>
+    <div class='card border-danger h-100'>
       <div class='card-header bg-danger text-white'>
         <h5 class='mb-0'>💸 Nova Despesa</h5>
       </div>
@@ -130,24 +137,24 @@
 
 <!-- Resumo Financeiro -->
 <div class='row mb-4'>
-  <div class='col-md-4'>
-    <div class='card border-success'>
+  <div class='col-12 col-sm-6 col-lg-4 mb-3 mb-lg-0'>
+    <div class='card border-success h-100'>
       <div class='card-body text-center'>
         <h6 class='card-title'>💰 Total Entradas</h6>
         <h4 class='text-success'>R$ {{ "%.2f"|format(total_entradas) }}</h4>
       </div>
     </div>
   </div>
-  <div class='col-md-4'>
-    <div class='card border-danger'>
+  <div class='col-12 col-sm-6 col-lg-4 mb-3 mb-lg-0'>
+    <div class='card border-danger h-100'>
       <div class='card-body text-center'>
         <h6 class='card-title'>💸 Total Despesas</h6>
         <h4 class='text-danger'>R$ {{ "%.2f"|format(total_despesas) }}</h4>
       </div>
     </div>
   </div>
-  <div class='col-md-4'>
-    <div class='card {% if saldo_atual >= 0 %}border-success{% else %}border-danger{% endif %}'>
+  <div class='col-12 col-sm-12 col-lg-4'>
+    <div class='card {% if saldo_atual >= 0 %}border-success{% else %}border-danger{% endif %} h-100'>
       <div class='card-body text-center'>
         <h6 class='card-title'>💵 Saldo Atual</h6>
         <h4 class='{% if saldo_atual >= 0 %}text-success{% else %}text-danger{% endif %}'>
@@ -169,52 +176,62 @@
 
 <!-- Extrato Detalhado -->
 <div class='table-responsive bg-white shadow-sm'>
-  <table class='table table-hover'>
+  <table class='table table-hover table-striped'>
     <thead class='table-dark'>
       <tr>
-        <th>Data</th>
+        <th class='d-none d-md-table-cell'>Data</th>
         <th>Tipo</th>
-        <th>Descrição</th>
+        <th class='d-none d-lg-table-cell'>Descrição</th>
         <th>Valor</th>
-        <th>Saldo Acumulado</th>
-        <th>Ações</th>
+        <th class='d-none d-md-table-cell'>Saldo</th>
+        <th class='text-center'>Ações</th>
       </tr>
     </thead>
     <tbody>
       {% for item in movimentacoes %}
       <tr>
-        <td>{{ item.mov.data.strftime('%d/%m/%Y') }}</td>
+        <td class='d-none d-md-table-cell'>{{ item.mov.data.strftime('%d/%m/%Y') }}</td>
         <td>
           {% if item.mov.tipo == 'MENSALIDADE' %}
-            <span class="badge bg-success">Mensalidade</span>
+            <span class="badge bg-success">Mens</span>
           {% elif item.mov.tipo == 'PARTIDA' %}
-            <span class="badge bg-info">Partida</span>
+            <span class="badge bg-info">Jogo</span>
           {% elif item.mov.tipo == 'ENTRADA' %}
-            <span class="badge bg-primary">Entrada</span>
+            <span class="badge bg-primary">Entr</span>
           {% else %}
-            <span class="badge bg-danger">Despesa</span>
+            <span class="badge bg-danger">Desp</span>
           {% endif %}
         </td>
-        <td>{{ item.mov.descricao }}</td>
+        <td class='d-none d-lg-table-cell'>{{ item.mov.descricao }}</td>
         <td class='{% if item.mov.tipo == "DESPESA" %}text-danger{% else %}text-success{% endif %}'>
           {% if item.mov.tipo == "DESPESA" %}-{% endif %}R$ {{ "%.2f"|format(item.mov.valor) }}
         </td>
-        <td class='{% if item.saldo_acumulado < 0 %}text-danger{% else %}text-success{% endif %}'>
+        <td class='d-none d-md-table-cell {% if item.saldo_acumulado < 0 %}text-danger{% else %}text-success{% endif %}'>
           R$ {{ "%.2f"|format(item.saldo_acumulado) }}
         </td>
-        <td>
+        <td class='text-center'>
           {% if item.mov.tipo != 'MENSALIDADE' and item.mov.tipo != 'PARTIDA' %}
           <button type="button" class="btn btn-sm btn-danger" 
                   data-bs-toggle="modal" 
                   data-bs-target="#modalExtorno{{ item.mov.id }}">
-            🗑️ Extornar
+            🗑️
           </button>
           {% endif %}
         </td>
       </tr>
+      <!-- Versão mobile da linha -->
+      <tr class='d-md-none'>
+        <td colspan='6' class='p-2 bg-light'>
+          <div class='small text-muted'>
+            <strong>Data:</strong> {{ item.mov.data.strftime('%d/%m/%Y') }}<br>
+            <strong>Descrição:</strong> {{ item.mov.descricao }}<br>
+            <strong>Saldo:</strong> <span class='{% if item.saldo_acumulado < 0 %}text-danger{% else %}text-success{% endif %}'>R$ {{ "%.2f"|format(item.saldo_acumulado) }}</span>
+          </div>
+        </td>
+      </tr>
       {% else %}
       <tr>
-        <td colspan="6" class="text-center text-muted">Nenhuma movimentação registrada</td>
+        <td colspan="6" class="text-center text-muted py-4">Nenhuma movimentação registrada</td>
       </tr>
       {% endfor %}
     </tbody>
