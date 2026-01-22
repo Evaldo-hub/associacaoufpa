@@ -25,7 +25,15 @@
         <input type='date' name='data_fim' class='form-control' 
                value='{{ filtros.data_fim or "" }}'>
       </div>
-      <div class='col-md-4'>
+      <div class='col-md-2'>
+        <label class='form-label'>Tipo</label>
+        <select name='tipo' class='form-control'>
+          <option value=''>Todos</option>
+          <option value='entradas' {% if filtros.tipo == 'entradas' %}selected{% endif %}>Apenas Entradas</option>
+          <option value='despesas' {% if filtros.tipo == 'despesas' %}selected{% endif %}>Apenas Despesas</option>
+        </select>
+      </div>
+      <div class='col-md-2'>
         <label class='form-label'>&nbsp;</label>
         <div class='d-flex gap-2'>
           <button type='submit' class='btn btn-primary'>
@@ -34,17 +42,19 @@
           <a href='/financeiro' class='btn btn-secondary'>
             🔄 Limpar
           </a>
-          {% if filtros.data_inicio or filtros.data_fim %}
-          <a href='/pdf-caixa-periodo?data_inicio={{ filtros.data_inicio or "" }}&data_fim={{ filtros.data_fim or "" }}' 
+        </div>
+      </div>
+      <div class='col-md-4'>
+        <label class='form-label'>&nbsp;</label>
+        <div class='d-flex gap-2'>
+          {% if filtros.data_inicio or filtros.data_fim or filtros.tipo %}
+          <a href='/pdf-caixa-periodo?data_inicio={{ filtros.data_inicio or "" }}&data_fim={{ filtros.data_fim or "" }}&tipo={{ filtros.tipo or "" }}' 
              class='btn btn-danger'>
             📄 PDF do Período
           </a>
           {% endif %}
         </div>
       </div>
-    </form>
-  </div>
-</div>
 
 <!-- Formulários de Lançamento -->
 {% if current_user.is_admin() %}
