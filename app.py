@@ -1671,6 +1671,7 @@ def pdf_caixa_periodo():
         # Obter filtros da URL
         data_inicio_str = request.args.get('data_inicio', '')
         data_fim_str = request.args.get('data_fim', '')
+        tipo_filtro = request.args.get('tipo', '')
         
         # Construir query base
         query = Financeiro.query
@@ -1691,6 +1692,12 @@ def pdf_caixa_periodo():
             except ValueError:
                 flash('Data final inválida', 'warning')
                 return redirect(url_for('financeiro'))
+        
+        # Aplicar filtro por tipo se fornecido
+        if tipo_filtro == 'entradas':
+            query = query.filter(Financeiro.tipo != 'DESPESA')
+        elif tipo_filtro == 'despesas':
+            query = query.filter(Financeiro.tipo == 'DESPESA')
         
         # Executar query ordenada
         movs = query.order_by(Financeiro.data.desc(), Financeiro.id.desc()).all()
@@ -2070,11 +2077,13 @@ def financeiro():
         # Obter filtros da URL
         data_inicio_str = request.args.get('data_inicio', '')
         data_fim_str = request.args.get('data_fim', '')
+        tipo_filtro = request.args.get('tipo', '')
         
         # Criar dicionário de filtros para o template
         filtros = {
             'data_inicio': data_inicio_str,
-            'data_fim': data_fim_str
+            'data_fim': data_fim_str,
+            'tipo': tipo_filtro
         }
         
         # Construir query base
@@ -2094,6 +2103,12 @@ def financeiro():
                 query = query.filter(Financeiro.data <= data_fim)
             except ValueError:
                 flash('Data final inválida', 'warning')
+        
+        # Aplicar filtro por tipo se fornecido
+        if tipo_filtro == 'entradas':
+            query = query.filter(Financeiro.tipo != 'DESPESA')
+        elif tipo_filtro == 'despesas':
+            query = query.filter(Financeiro.tipo == 'DESPESA')
         
         # Executar query ordenada
         movs = query.order_by(Financeiro.data.desc(), Financeiro.id.desc()).all()
@@ -2131,7 +2146,7 @@ def financeiro():
                              total_entradas=0,
                              total_despesas=0,
                              saldo_atual=0,
-                             filtros={'data_inicio': '', 'data_fim': ''})
+                             filtros={'data_inicio': '', 'data_fim': '', 'tipo': ''})
 
 @app.route('/ranking')
 def ranking():
