@@ -32,9 +32,14 @@ def manifest():
     return app.send_static_file("manifest.json")
 
 # ================= BANCO DE DADOS =================
-# Forçar uso de SQLite local
-db_url = "sqlite:///associacao.db"
-print("Usando SQLite local: associacao.db")
+# Configuração do banco de dados usando variável de ambiente
+db_url = os.environ.get('DATABASE_URL')
+
+if not db_url:
+    print("DATABASE_URL não encontrada. Usando SQLite local como fallback.")
+    db_url = "sqlite:///associacao.db"
+else:
+    print(f"Usando DATABASE_URL: {db_url}")
 
 # Corrige padrão antigo do Render (se houver)
 if db_url.startswith("postgres://"):
