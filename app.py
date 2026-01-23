@@ -37,7 +37,7 @@ db_url = os.environ.get("DATABASE_URL")
 # Permite rodar local com SQLite
 if not db_url:
     db_url = "sqlite:///local.db"
-    print("⚠️ DATABASE_URL não encontrada. Usando SQLite local.")
+    print("DATABASE_URL nao encontrada. Usando SQLite local.")
 
 # Corrige padrão antigo do Render
 if db_url.startswith("postgres://"):
@@ -203,7 +203,7 @@ with app.app_context():
         admin.set_password("@admin171427")
         db.session.add(admin)
         db.session.commit()
-        logger.info("✅ Usuário admin criado com sucesso")
+        logger.info("Usuario admin criado com sucesso")
 
 # ================= VALIDAÇÕES E UTILITÁRIOS =================
 
@@ -2814,7 +2814,7 @@ Por favor, confirmem presença no app.
 
 Contamos com todos! 💪
 """
-                    flash('✅ Mensagem de jogo gerada com sucesso!', 'success')
+                    flash('Mensagem de jogo gerada com sucesso!', 'success')
                 else:
                     flash('Selecione um jogo válido', 'warning')
                     return redirect(url_for('whatsapp_grupo'))
@@ -2822,9 +2822,9 @@ Contamos com todos! 💪
             elif tipo_mensagem == 'customizada':
                 if mensagem_personalizada and len(mensagem_personalizada.strip()) > 0:
                     mensagem_grupo = mensagem_personalizada.strip()
-                    flash('✅ Mensagem personalizada gerada com sucesso!', 'success')
+                    flash('Mensagem personalizada gerada com sucesso!', 'success')
                 else:
-                    flash('⚠️ Digite uma mensagem personalizada válida', 'warning')
+                    flash('Digite uma mensagem personalizada valida', 'warning')
                     return redirect(url_for('whatsapp_grupo'))
                     
             else:  # mensagem padrão
@@ -2846,7 +2846,7 @@ Entre em contato com a administração.
 Atenciosamente,
 Diretoria da Associação UFPA
 """
-                flash('✅ Mensagem padrão gerada com sucesso!', 'success')
+                flash('Mensagem padrao gerada com sucesso!', 'success')
         else:
             # Mensagem padrão para GET
             mensagem_grupo = None
