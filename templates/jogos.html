@@ -14,13 +14,7 @@
              value="{{ data_atual or '' }}" required>
     </div>
 
-    <div class="col-12 col-md-2">
-      <label class="form-label d-none d-md-block">Horário</label>
-      <input type="time" name="horario" class="form-control" 
-             value="19:00" required>
-    </div>
-
-    <div class="col-12 col-md-3">
+    <div class="col-12 col-md-4">
       <label class="form-label d-none d-md-block">Adversário</label>
       <input name="adversario" placeholder="Adversário" class="form-control" 
              value="{{ adversario_padrao or '' }}" required>
@@ -39,7 +33,16 @@
       </div>
     </div>
 
-    <div class="col-12 col-md-3 d-grid">
+    <div class="col-12 col-md-2">
+      <label class="form-label d-none d-md-block">Valor Sugerido</label>
+      <input type="number" step="0.01" min="0"
+             name="valor_jogo"
+             placeholder="Valor sugerido"
+             value="{{ valor_jogo_padrao or '20.00' }}"
+             class="form-control">
+    </div>
+
+    <div class="col-12 col-md-1 d-grid">
       <label class="form-label d-none d-md-block">&nbsp;</label>
       <button type="submit" class="btn btn-success">⚽ Cadastrar</button>
     </div>
