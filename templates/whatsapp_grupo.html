@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="mb-1">📱 WhatsApp para Grupos</h3>
+      <p class="text-muted mb-0">Enviar mensagens para grupos do WhatsApp</p>
+    </div>
+    <div>
+      <a href="{{ url_for('index') }}" class="btn btn-secondary me-2">
+        ← Voltar
+      </a>
+    </div>
+  </div>
+
+  <!-- Formulário de Mensagem para Grupo -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-success text-white">
+      <h5 class="mb-0">📝 Criar Mensagem para Grupo</h5>
+    </div>
+    <div class="card-body">
+      <form method="post" id="form-mensagem-grupo">
+        <div class="row g-3">
+          <!-- Tipo de Mensagem -->
+          <div class="col-12">
+            <label class="form-label">Tipo de Mensagem:</label>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="tipo_mensagem" id="tipo_padrao" value="padrao" checked>
+              <label class="form-check-label" for="tipo_padrao">
+                📢 Mensagem Padrão (Comunicado geral)
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="tipo_mensagem" id="tipo_jogo" value="jogo">
+              <label class="form-check-label" for="tipo_jogo">
+                ⚽ Convocação de Jogo
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="tipo_mensagem" id="tipo_customizada" value="customizada">
+              <label class="form-check-label" for="tipo_customizada">
+                ✏️ Mensagem Personalizada
+              </label>
+            </div>
+          </div>
+
+          <!-- Seleção de Jogo (aparece dinamicamente) -->
+          <div class="col-12" id="campo_jogo" style="display: none;">
+            <label class="form-label">Selecione o Jogo:</label>
+            <select name="jogo_id" class="form-select" id="jogo_select">
+              <option value="">Escolha um jogo...</option>
+              {% for jogo in jogos %}
+              <option value="{{ jogo.id }}">
+                {{ jogo.data.strftime('%d/%m/%Y') }} - {{ jogo.adversario or 'Adversário' }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Mensagem Personalizada (aparece dinamicamente) -->
+          <div class="col-12" id="campo_customizada" style="display: none;">
+            <label class="form-label">Digite sua mensagem:</label>
+            <textarea name="mensagem_personalizada" class="form-control" rows="6" 
+                      placeholder="Digite sua mensagem personalizada aqui..."></textarea>
+            <small class="text-muted">Dica: Use emojis e formatação para deixar a mensagem mais atrativa!</small>
+          </div>
+
+          <!-- Botão -->
+          <div class="col-12">
+            <button type="submit" class="btn btn-success btn-lg">
+              📱 Gerar Link para Grupo
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Link para Grupo Gerado -->
+  {% if mensagem_grupo %}
+  <div class="card mb-4 border-success">
+    <div class="card-header bg-success text-white">
+      <h6 class="mb-0">🔗 Link para Grupo Pronto</h6>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-light">
+        <h5>📋 Mensagem que será enviada:</h5>
+        <pre class="mb-3" style="white-space: pre-wrap; font-family: inherit;">{{ mensagem_grupo | replace('%20', ' ') | replace('%0A', '\n') | replace('%0D', '') }}</pre>
+      </div>
+      
+      <div class="text-center">
+        <a href="https://wa.me/?text={{ mensagem_grupo }}" 
+           target="_blank"
+           class="btn btn-success btn-lg">
+          📱 Abrir WhatsApp e Escolher Grupo
+        </a>
+      </div>
+      
+      <div class="text-center mt-3">
+        <small class="text-muted">
+          🔗 O WhatsApp abrirá e perguntará: "Para quem você quer enviar?"<br>
+          Escolha o grupo desejado e a mensagem já estará preenchida!
+        </small>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Instruções -->
+  <div class="card">
+    <div class="card-header bg-info text-white">
+      <h5 class="mb-0">📖 Como Funciona</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <h6>🔗 Passo a Passo:</h6>
+          <ol>
+            <li>Escolha o tipo de mensagem</li>
+            <li>Preencha os campos necessários</li>
+            <li>Clique em "📱 Gerar Link para Grupo"</li>
+            <li>Clique no link verde "📱 Abrir WhatsApp"</li>
+            <li>WhatsApp pergunta: "Para quem você quer enviar?"</li>
+            <li>Escolha o grupo desejado</li>
+            <li>Mensagem já aparece preenchida!</li>
+            <li>Só clicar ENVIAR ✅</li>
+          </ol>
+        </div>
+        <div class="col-md-6">
+          <h6>💡 Dicas:</h6>
+          <ul>
+            <li>✅ Funciona para QUALQUER grupo do WhatsApp</li>
+            <li>✅ Você escolhe o grupo na hora</li>
+            <li>✅ Mensagem já formatada com emojis</li>
+            <li>✅ Ideal para comunicados rápidos</li>
+            <li>✅ Perfeito para convocações</li>
+            <li>✅ Não precisa salvar número</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Mostrar/ocultar campos baseado no tipo de mensagem
+document.addEventListener('DOMContentLoaded', function() {
+  const tipoPadrao = document.getElementById('tipo_padrao');
+  const tipoJogo = document.getElementById('tipo_jogo');
+  const tipoCustomizada = document.getElementById('tipo_customizada');
+  const campoJogo = document.getElementById('campo_jogo');
+  const campoCustomizada = document.getElementById('campo_customizada');
+
+  function toggleCampos() {
+    if (tipoJogo.checked) {
+      campoJogo.style.display = 'block';
+      campoCustomizada.style.display = 'none';
+    } else if (tipoCustomizada.checked) {
+      campoJogo.style.display = 'none';
+      campoCustomizada.style.display = 'block';
+    } else {
+      campoJogo.style.display = 'none';
+      campoCustomizada.style.display = 'none';
+    }
+  }
+
+  tipoPadrao.addEventListener('change', toggleCampos);
+  tipoJogo.addEventListener('change', toggleCampos);
+  tipoCustomizada.addEventListener('change', toggleCampos);
+});
+</script>
+{% endblock %}
