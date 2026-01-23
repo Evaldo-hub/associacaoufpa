@@ -450,25 +450,6 @@
 
 {% block scripts %}
 <script>
-// Forçar atualização do formulário com cache-busting
-document.addEventListener('DOMContentLoaded', function() {
-  // Adicionar timestamp para evitar cache
-  const timestamp = new Date().getTime();
-  
-  // Limpar cache dos formulários
-  const forms = document.querySelectorAll('form[method="post"]');
-  forms.forEach(form => {
-    // Adicionar timestamp aos inputs para cache-busting
-    const inputs = form.querySelectorAll('input, select, checkbox');
-    inputs.forEach(input => {
-      input.setAttribute('data-timestamp', timestamp);
-    });
-  });
-  
-  // Log para debug
-  console.log('Formulário de presenças atualizado em:', new Date().toLocaleString());
-});
-
 $(document).ready(function() {
     $('#novo_jogador').select2({
         placeholder: "Buscar jogador...",

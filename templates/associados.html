@@ -82,36 +82,34 @@
       <label class="form-label">Mês</label>
       <select name='mes' class='form-select' required>
         <option value=''>Mês</option>
-        <option value='Janeiro' {% if mes_atual == 'Janeiro' %}selected{% endif %}>Janeiro</option>
-        <option value='Fevereiro' {% if mes_atual == 'Fevereiro' %}selected{% endif %}>Fevereiro</option>
-        <option value='Março' {% if mes_atual == 'Março' %}selected{% endif %}>Março</option>
-        <option value='Abril' {% if mes_atual == 'Abril' %}selected{% endif %}>Abril</option>
-        <option value='Maio' {% if mes_atual == 'Maio' %}selected{% endif %}>Maio</option>
-        <option value='Junho' {% if mes_atual == 'Junho' %}selected{% endif %}>Junho</option>
-        <option value='Julho' {% if mes_atual == 'Julho' %}selected{% endif %}>Julho</option>
-        <option value='Agosto' {% if mes_atual == 'Agosto' %}selected{% endif %}>Agosto</option>
-        <option value='Setembro' {% if mes_atual == 'Setembro' %}selected{% endif %}>Setembro</option>
-        <option value='Outubro' {% if mes_atual == 'Outubro' %}selected{% endif %}>Outubro</option>
-        <option value='Novembro' {% if mes_atual == 'Novembro' %}selected{% endif %}>Novembro</option>
-        <option value='Dezembro' {% if mes_atual == 'Dezembro' %}selected{% endif %}>Dezembro</option>
+        <option value='Janeiro'>Janeiro</option>
+        <option value='Fevereiro'>Fevereiro</option>
+        <option value='Março'>Março</option>
+        <option value='Abril'>Abril</option>
+        <option value='Maio'>Maio</option>
+        <option value='Junho'>Junho</option>
+        <option value='Julho'>Julho</option>
+        <option value='Agosto'>Agosto</option>
+        <option value='Setembro'>Setembro</option>
+        <option value='Outubro'>Outubro</option>
+        <option value='Novembro'>Novembro</option>
+        <option value='Dezembro'>Dezembro</option>
       </select>
     </div>
     <div class='col-12 col-md-2'>
       <label class="form-label">Ano</label>
       <input type='number' name='ano' min='2000' max='2100' 
              id='ano_input'
-             value='{{ ano_atual }}'
              class='form-control' required>
     </div>
     <div class='col-12 col-md-3'>
       <label class="form-label">Valor R$</label>
       <input type='number' step='0.01' min='0' name='valor' 
-             value='{{ valor_padrao or "50.00" }}'
              placeholder='0.00' class='form-control' required>
     </div>
     <div class='col-12 col-md-2'>
-      <label class="form-label d-md-none">&nbsp;</label>
-      <button type='submit' class='btn btn-primary w-100'>💰 Lançar Mensalidade</button>
+      <label class="form-label d-md-none'>&nbsp;</label>
+      <button class='btn btn-primary w-100'>Lançar</button>
     </div>
   </form>
 </div>
@@ -183,7 +181,7 @@
                         onsubmit="return confirm('Tem certeza que deseja extornar esta mensalidade? Esta ação não pode ser desfeita.');" 
                         style="display: inline;">
                     <button type="submit" class="btn btn-sm btn-danger">
-                      Extornar
+                      🗑️ Extornar
                     </button>
                   </form>
                   {% endif %}
@@ -194,7 +192,7 @@
                         onsubmit="return confirm('Tem certeza que deseja extornar esta mensalidade? Esta ação não pode ser desfeita.');" 
                         style="display: inline;">
                     <button type="submit" class="btn btn-sm btn-danger">
-                      
+                      🗑️
                     </button>
                   </form>
                   {% endif %}
@@ -293,34 +291,13 @@
 
 {% block scripts %}
 <script>
-  // Forçar atualização do formulário com cache-busting
+  // Definir ano atual como padrão
   document.addEventListener('DOMContentLoaded', function() {
-    // Adicionar timestamp para evitar cache
-    const timestamp = new Date().getTime();
-    
-    // Definir ano atual como padrão
     const anoInput = document.getElementById('ano_input');
     if (anoInput) {
       const anoAtual = new Date().getFullYear();
       anoInput.value = anoAtual;
-      anoInput.setAttribute('data-timestamp', timestamp);
     }
-    
-    // Limpar cache do formulário
-    const form = document.querySelector('form[method="post"]');
-    if (form) {
-      form.reset();
-      // Forçar reload dos valores
-      setTimeout(() => {
-        const anoInput = document.getElementById('ano_input');
-        if (anoInput && !anoInput.value) {
-          anoInput.value = new Date().getFullYear();
-        }
-      }, 100);
-    }
-    
-    // Log para debug
-    console.log('Formulário atualizado em:', new Date().toLocaleString());
   });
 </script>
 {% endblock %}

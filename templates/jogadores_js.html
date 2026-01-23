@@ -1,27 +1,4 @@
 <script>
-// Forçar atualização do formulário com cache-busting
-document.addEventListener('DOMContentLoaded', function() {
-  // Adicionar timestamp para evitar cache
-  const timestamp = new Date().getTime();
-  
-  // Limpar cache do formulário
-  const form = document.getElementById('form-jogadores');
-  if (form) {
-    form.reset();
-    // Forçar reload dos valores
-    setTimeout(() => {
-      // Adicionar timestamp aos inputs para cache-busting
-      const inputs = form.querySelectorAll('input, select');
-      inputs.forEach(input => {
-        input.setAttribute('data-timestamp', timestamp);
-      });
-    }, 100);
-  }
-  
-  // Log para debug
-  console.log('Formulário de jogadores atualizado em:', new Date().toLocaleString());
-});
-
 function editarJogador(id) {
   console.log('editarJogador chamado com ID:', id);
   
