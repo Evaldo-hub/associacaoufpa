@@ -200,7 +200,7 @@ with app.app_context():
             email="admin@admin.com",
             role="admin"
         )
-        admin.set_password("@admin171427")
+        admin.set_password("@admin1974")
         db.session.add(admin)
         db.session.commit()
         logger.info("Usuario admin criado com sucesso")
