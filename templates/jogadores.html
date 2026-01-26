@@ -1,47 +1,62 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h3>👥 Atletas</h3>
-{% if current_user.is_admin() %}
-<div class="mb-3">
-  <a href="/cadastrar-senha-socio" class="btn btn-success">
-    🔐 Cadastrar Senhas para Sócios
-  </a>
+<!-- Cabeçalho Responsivo -->
+<div class='d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4'>
+  <div class='mb-3 mb-md-0'>
+    <h3 class='mb-1'>👥 Atletas</h3>
+    <p class="text-muted mb-0">Gerencie o cadastro de atletas, sócios e convidados do sistema.</p>
+  </div>
+  {% if current_user.is_admin() %}
+  <div class='d-flex flex-column flex-sm-row gap-2'>
+    <a href="/cadastrar-senha-socio" class="btn btn-success flex-fill flex-sm-grow-0">
+      🔐 Cadastrar Senhas
+    </a>
+  </div>
+  {% endif %}
 </div>
-{% endif %}
 {% if current_user.is_admin() %}
 <div class='card p-3 mb-4 shadow-sm' id="formCadastro">
-  <form method='post' class='row g-2'>
-    <div class='col-md-3'>
-      <input name='nome' placeholder='Nome Completo' class='form-control' required>
+  <h5 class="mb-3">➕ Cadastrar Novo Atleta</h5>
+  <form method='post' class='row g-3' id="form-jogadores">
+    <div class='col-12 col-md-3'>
+      <label class="form-label">Nome Completo</label>
+      <input name='nome' placeholder='Nome Completo' class='form-control' 
+             value="{{ nome_padrao or '' }}" required>
     </div>
-    <div class='col-md-2'>
-      <input name='telefone' placeholder='WhatsApp' class='form-control'>
+    <div class='col-12 col-md-2'>
+      <label class="form-label">WhatsApp</label>
+      <input name='telefone' placeholder='WhatsApp' class='form-control'
+             value="{{ telefone_padrao or '' }}">
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
+      <label class="form-label">Tipo</label>
       <select name='tipo' class='form-select' required>
-        <option value='SOCIO'>Sócio</option>
-        <option value='CONVIDADO'>Convidado</option>
+        <option value='SOCIO' {% if tipo_padrao == 'SOCIO' %}selected{% endif %}>Sócio</option>
+        <option value='CONVIDADO' {% if tipo_padrao == 'CONVIDADO' %}selected{% endif %}>Convidado</option>
       </select>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
       <div class='form-check mt-4'>
-        <input class='form-check-input' type='checkbox' name='ativo' id='ativo' checked>
+        <input class='form-check-input' type='checkbox' name='ativo' id='ativo' 
+               {% if ativo_padrao %}checked{% endif %}>
         <label class='form-check-label' for='ativo'>
           ✅ Ativo
         </label>
       </div>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
       <div class='form-check mt-4'>
-        <input class='form-check-input' type='checkbox' name='nativo' id='nativo'>
+        <input class='form-check-input' type='checkbox' name='nativo' id='nativo'
+               {% if nativo_padrao %}checked{% endif %}>
         <label class='form-check-label' for='nativo'>
           🏠 Nativo
         </label>
       </div>
     </div>
-    <div class='col-md-1'>
-      <button class='btn btn-primary w-100' id="btnCadastrar">Cadastrar</button>
+    <div class='col-12 col-md-1'>
+      <label class="form-label d-md-none">&nbsp;</label>
+      <button type='submit' class='btn btn-primary w-100' id="btnCadastrar">👥 Cadastrar</button>
     </div>
   </form>
 </div>
@@ -50,21 +65,24 @@
 <!-- Formulário de Edição (inicialmente oculto) -->
 <div class='card p-3 mb-4 shadow-sm' id="formEdicao" style="display: none;">
   <h5 class="mb-3">✏️ Editar Atleta</h5>
-  <form method='post' id='formEditar' class='row g-2'>
+  <form method='post' id='formEditar' class='row g-3'>
     <input type='hidden' name='editar_id' id='editar_id'>
-    <div class='col-md-3'>
+    <div class='col-12 col-md-3'>
+      <label class="form-label">Nome Completo</label>
       <input name='editar_nome' id='editar_nome' placeholder='Nome Completo' class='form-control' required>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
+      <label class="form-label">WhatsApp</label>
       <input name='editar_telefone' id='editar_telefone' placeholder='WhatsApp' class='form-control'>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
+      <label class="form-label">Tipo</label>
       <select name='editar_tipo' id='editar_tipo' class='form-select' required>
         <option value='SOCIO'>Sócio</option>
         <option value='CONVIDADO'>Convidado</option>
       </select>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
       <div class='form-check mt-4'>
         <input class='form-check-input' type='checkbox' name='editar_ativo' id='editar_ativo'>
         <label class='form-check-label' for='editar_ativo'>
@@ -72,7 +90,7 @@
         </label>
       </div>
     </div>
-    <div class='col-md-2'>
+    <div class='col-12 col-md-2'>
       <div class='form-check mt-4'>
         <input class='form-check-input' type='checkbox' name='editar_nativo' id='editar_nativo'>
         <label class='form-check-label' for='editar_nativo'>
@@ -80,32 +98,39 @@
         </label>
       </div>
     </div>
-    <div class='col-md-1'>
+    <div class='col-12 col-md-1'>
+      <label class="form-label d-md-none">&nbsp;</label>
       <button type='submit' class='btn btn-success w-100'>Salvar</button>
     </div>
-    <div class='col-md-1'>
+    <div class='col-12 col-md-1'>
+      <label class="form-label d-md-none">&nbsp;</label>
       <button type='button' class='btn btn-secondary w-100' onclick='cancelarEdicao()'>Cancelar</button>
     </div>
   </form>
 </div>
 
 <div class='table-responsive bg-white shadow-sm'>
-  <table class='table table-hover'>
+  <table class='table table-hover table-striped'>
     <thead class='table-dark'>
       <tr>
-        <th>Nome</th>
-        <th>Telefone</th>
+        <th class='d-none d-md-table-cell'>Nome</th>
+        <th class='d-md-none'>Atleta</th>
+        <th class='d-none d-lg-table-cell'>Telefone</th>
         <th>Tipo</th>
-        <th>Status</th>
-        <th>Nativo</th>
-        <th>Ações</th>
+        <th class='d-none d-md-table-cell'>Status</th>
+        <th class='d-none d-lg-table-cell'>Nativo</th>
+        <th class='text-center'>Ações</th>
       </tr>
     </thead>
     <tbody>
       {% for jogador in jogadores %}
       <tr>
-        <td>{{ jogador.nome }}</td>
-        <td>{{ jogador.telefone or '-' }}</td>
+        <td class='d-none d-md-table-cell'>{{ jogador.nome }}</td>
+        <td class='d-md-none'>
+          <div class='fw-bold'>{{ jogador.nome }}</div>
+          <div class='small text-muted'>{{ jogador.telefone or '-' }}</div>
+        </td>
+        <td class='d-none d-lg-table-cell'>{{ jogador.telefone or '-' }}</td>
         <td>
           {% if jogador.tipo == 'SOCIO' %}
             <span class="badge bg-primary">Sócio</span>
@@ -113,44 +138,66 @@
             <span class="badge bg-secondary">Convidado</span>
           {% endif %}
         </td>
-        <td>
+        <td class='d-none d-md-table-cell'>
           {% if jogador.ativo %}
             <span class="badge bg-success">✅ Ativo</span>
           {% else %}
             <span class="badge bg-danger">❌ Inativo</span>
           {% endif %}
         </td>
-        <td>
+        <td class='d-none d-lg-table-cell'>
           {% if jogador.nativo %}
             <span class="badge bg-info">🏠 Nativo</span>
           {% else %}
-            <span class="badge bg-light text-dark">Não nativo</span>
+            <span class="badge bg-light text-dark">Não</span>
           {% endif %}
         </td>
-        <td>
-          {% if current_user.is_admin() %}
-          <button class="btn btn-sm btn-info" onclick="editarJogador({{ jogador.id }})" title="Editar">
-            ✏️ Editar
-          </button>
-          {% endif %}
-          {% if current_user.is_admin() %}
-          <form method="post" action="{{ url_for('toggle_ativo', jogador_id=jogador.id) }}" style="display: inline;">
-            {% if jogador.ativo %}
-              <button type="submit" class="btn btn-sm btn-warning" title="Desativar">
-                ❌ Desativar
-              </button>
-            {% else %}
-              <button type="submit" class="btn btn-sm btn-success" title="Ativar">
-                ✅ Ativar
-              </button>
+        <td class='text-center'>
+          <div class='d-flex flex-column flex-sm-row gap-1 justify-content-center'>
+            {% if current_user.is_admin() %}
+            <button class="btn btn-sm btn-info flex-fill flex-sm-grow-0" onclick="editarJogador({{ jogador.id }})" title="Editar">
+              ✏️
+            </button>
             {% endif %}
-          </form>
-          {% endif %}
+            {% if current_user.is_admin() %}
+            <form method="post" action="{{ url_for('toggle_ativo', jogador_id=jogador.id) }}" style="display: inline;">
+              {% if jogador.ativo %}
+                <button type="submit" class="btn btn-sm btn-warning flex-fill flex-sm-grow-0" title="Desativar">
+                  ❌
+                </button>
+              {% else %}
+                <button type="submit" class="btn btn-sm btn-success flex-fill flex-sm-grow-0" title="Ativar">
+                  ✅
+                </button>
+              {% endif %}
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      <!-- Versão mobile com detalhes -->
+      <tr class='d-md-none'>
+        <td colspan='2' class='p-2 bg-light'>
+          <div class='small text-muted'>
+            <strong>Status:</strong> 
+            {% if jogador.ativo %}
+              <span class="badge bg-success">✅ Ativo</span>
+            {% else %}
+              <span class="badge bg-danger">❌ Inativo</span>
+            {% endif %}
+            <br>
+            <strong>Nativo:</strong> 
+            {% if jogador.nativo %}
+              <span class="badge bg-info">🏠 Nativo</span>
+            {% else %}
+              <span class="badge bg-light text-dark">Não</span>
+            {% endif %}
+          </div>
         </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="6" class="text-center text-muted">Nenhum jogador cadastrado</td>
+        <td colspan="7" class="text-center text-muted py-4">Nenhum jogador cadastrado</td>
       </tr>
       {% endfor %}
     </tbody>

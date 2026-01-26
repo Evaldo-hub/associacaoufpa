@@ -75,16 +75,18 @@
         <h5 class='mb-0'>💰 Nova Entrada</h5>
       </div>
       <div class='card-body'>
-        <form method='post' action='/adicionar-entrada'>
+        <form method='post' action='/adicionar-entrada' id="form-entrada">
           <div class='mb-3'>
             <label class='form-label'>Descrição</label>
             <input type='text' name='descricao' class='form-control' required 
-                   placeholder='Ex: Doação, patrocínio, etc.'>
+                   placeholder='Ex: Doação, patrocínio, etc.'
+                   value="{{ descricao_entrada_padrao or '' }}">
           </div>
           <div class='mb-3'>
             <label class='form-label'>Valor</label>
             <input type='number' step='0.01' min='0' name='valor' class='form-control' required 
-                   placeholder='R$ 0,00'>
+                   placeholder='R$ 0,00'
+                   value="{{ valor_entrada_padrao or '100.00' }}">
           </div>
           <button type='submit' class='btn btn-success w-100'>
             💰 Adicionar Entrada
@@ -100,30 +102,32 @@
         <h5 class='mb-0'>💸 Nova Despesa</h5>
       </div>
       <div class='card-body'>
-        <form method='post' action='/adicionar-despesa'>
+        <form method='post' action='/adicionar-despesa' id="form-despesa">
           <div class='mb-3'>
             <label class='form-label'>Categoria</label>
             <select name='categoria' class='form-control' required>
               <option value=''>Selecione...</option>
-              <option value='ARBITRO'>Árbitro</option>
-              <option value='AGUA'>Água</option>
-              <option value='CAMPO'>Campo de Futebol</option>
-              <option value='TRANSPORTE'>Transporte</option>
-              <option value='LAVAGEM'>Lavagem</option>
-              <option value='ALIMENTACAO'>Alimentação</option>
-              <option value='MATERIAL'>Material</option>
-              <option value='OUTROS_SAIDA'>Outros</option>
+              <option value='ARBITRO' {% if categoria_despesa_padrao == 'ARBITRO' %}selected{% endif %}>Árbitro</option>
+              <option value='AGUA' {% if categoria_despesa_padrao == 'AGUA' %}selected{% endif %}>Água</option>
+              <option value='CAMPO' {% if categoria_despesa_padrao == 'CAMPO' %}selected{% endif %}>Campo de Futebol</option>
+              <option value='TRANSPORTE' {% if categoria_despesa_padrao == 'TRANSPORTE' %}selected{% endif %}>Transporte</option>
+              <option value='LAVAGEM' {% if categoria_despesa_padrao == 'LAVAGEM' %}selected{% endif %}>Lavagem</option>
+              <option value='ALIMENTACAO' {% if categoria_despesa_padrao == 'ALIMENTACAO' %}selected{% endif %}>Alimentação</option>
+              <option value='MATERIAL' {% if categoria_despesa_padrao == 'MATERIAL' %}selected{% endif %}>Material</option>
+              <option value='OUTROS_SAIDA' {% if categoria_despesa_padrao == 'OUTROS_SAIDA' %}selected{% endif %}>Outros</option>
             </select>
           </div>
           <div class='mb-3'>
             <label class='form-label'>Descrição</label>
             <input type='text' name='descricao' class='form-control' required 
-                   placeholder='Descreva a despesa'>
+                   placeholder='Descreva a despesa'
+                   value="{{ descricao_despesa_padrao or '' }}">
           </div>
           <div class='mb-3'>
             <label class='form-label'>Valor</label>
             <input type='number' step='0.01' min='0' name='valor' class='form-control' required 
-                   placeholder='R$ 0,00'>
+                   placeholder='R$ 0,00'
+                   value="{{ valor_despesa_padrao or '50.00' }}">
           </div>
           <button type='submit' class='btn btn-danger w-100'>
             💸 Adicionar Despesa
@@ -282,4 +286,41 @@
 {% endif %}
 {% endfor %}
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Forçar atualização dos formulários com cache-busting
+document.addEventListener('DOMContentLoaded', function() {
+  // Adicionar timestamp para evitar cache
+  const timestamp = new Date().getTime();
+  
+  // Limpar cache dos formulários
+  const formEntrada = document.getElementById('form-entrada');
+  const formDespesa = document.getElementById('form-despesa');
+  
+  if (formEntrada) {
+    formEntrada.reset();
+    setTimeout(() => {
+      const inputs = formEntrada.querySelectorAll('input, select');
+      inputs.forEach(input => {
+        input.setAttribute('data-timestamp', timestamp);
+      });
+    }, 100);
+  }
+  
+  if (formDespesa) {
+    formDespesa.reset();
+    setTimeout(() => {
+      const inputs = formDespesa.querySelectorAll('input, select');
+      inputs.forEach(input => {
+        input.setAttribute('data-timestamp', timestamp);
+      });
+    }, 100);
+  }
+  
+  // Log para debug
+  console.log('Formulários financeiros atualizados em:', new Date().toLocaleString());
+});
+</script>
 {% endblock %}
