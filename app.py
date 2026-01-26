@@ -6,7 +6,7 @@ Flask + SQLAlchemy + Bootstrap
 from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from datetime import datetime, date, time
+from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 from reportlab.lib.pagesizes import letter, A4
@@ -16,10 +16,6 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 import os
 from functools import wraps
-from urllib.parse import quote
-from flask import jsonify
-from sqlalchemy import text
-from sqlalchemy.exc import ProgrammingError
 
 # ================= CONFIGURAÇÃO =================
 app = Flask(__name__, static_folder='static')
@@ -40,7 +36,7 @@ db_url = os.environ.get("DATABASE_URL")
 # Permite rodar local com SQLite
 if not db_url:
     db_url = "sqlite:///local.db"
-    print("DATABASE_URL nao encontrada. Usando SQLite local.")
+    print("⚠️ DATABASE_URL não encontrada. Usando SQLite local.")
 
 # Corrige padrão antigo do Render
 if db_url.startswith("postgres://"):
@@ -123,7 +119,6 @@ class Jogo(db.Model):
     """Modelo para jogos"""
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.Date, nullable=False, index=True)
-    horario = db.Column(db.Time, nullable=False, default=time(16, 0))  # 16:00 por padrão
     adversario = db.Column(db.String(100))
     local = db.Column(db.String(100))
     valor_jogo = db.Column(db.Float, default=0)
@@ -194,35 +189,21 @@ class Auditoria(db.Model):
 
 # ================= INICIALIZAÇÃO DO BANCO =================
 with app.app_context():
-    try:
-        db.create_all()
+    db.create_all()
 
-        # Cria admin padrão se não existir
-        if not User.query.filter_by(username="admin").first():
-            admin = User(
-                username="admin",
-                email="admin@admin.com",
-                role="admin"
-            )
-            admin.set_password("@admin1974")
-            db.session.add(admin)
-            db.session.commit()
-            logger.info("Usuario admin criado com sucesso")
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Erro na inicialização do banco: {e}")
+    # Cria admin padrão se não existir
+    if not User.query.filter_by(username="admin").first():
+        admin = User(
+            username="admin",
+            email="admin@admin.com",
+            role="admin"
+        )
+        admin.set_password("@admin1974")
+        db.session.add(admin)
+        db.session.commit()
+        logger.info("✅ Usuário admin criado com sucesso")
 
 # ================= VALIDAÇÕES E UTILITÁRIOS =================
-
-def forcar_refresh_banco():
-    """Força o SQLAlchemy a buscar dados atualizados do banco"""
-    try:
-        db.session.expire_all()
-        # Remove flush() para evitar problemas de transação
-        logger.info("Refresh do banco forçado com sucesso")
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Erro ao forçar refresh do banco: {e}")
 
 def validar_valor(valor_str):
     """Valida e converte valor monetário"""
@@ -248,7 +229,7 @@ def validar_tipo_jogador(tipo):
         raise ValueError(f"Tipo inválido. Use: {', '.join(tipos_validos)}")
     return tipo
 
-
+# ================= ROTAS =================
 # ================= ROTAS =================
 
 @app.route('/pwa/')
@@ -259,31 +240,19 @@ def pwa_entry():
 @app.route("/login/", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        logger.info(f"Usuário já autenticado: {current_user.username}")
         return redirect('/')
 
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        
-        logger.info(f"Tentativa de login para usuário: {username}")
 
-        try:
-            user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=username).first()
 
-            if user and user.check_password(password):
-                login_user(user)
-                logger.info(f"Login bem-sucedido para: {username}")
-                next_page = request.args.get("next")
-                redirect_url = next_page or '/'
-                logger.info(f"Redirecionando para: {redirect_url}")
-                return redirect(redirect_url)
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(request.args.get("next") or '/')
 
-            logger.warning(f"Credenciais inválidas para usuário: {username}")
-            flash("Usuário ou senha inválidos", "danger")
-        except Exception as e:
-            logger.error(f"Erro no login: {e}")
-            flash("Erro ao processar login. Tente novamente.", "danger")
+        flash("Usuário ou senha inválidos", "danger")
 
     return render_template("login.html")
 
@@ -300,13 +269,8 @@ def logout():
 @login_required
 def index():
     """Dashboard principal com resumo financeiro, artilharia e próximo jogo"""
-    logger.info(f"Acessando dashboard - Usuário: {current_user.username}")
-    
     try:
-        # Forçar refresh do banco para garantir dados atualizados
-        forcar_refresh_banco()
-        
-        # Buscar dados atualizados financeiros
+        # Dados financeiros
         mensal = db.session.query(db.func.sum(Financeiro.valor)).filter(
             Financeiro.tipo == 'MENSALIDADE'
         ).scalar() or 0
@@ -353,7 +317,6 @@ def index():
         # Pegar apenas os top 10 para o gráfico
         top_artilheiros = artilharia[:10]
         
-        logger.info(f"Dashboard carregado com sucesso para {current_user.username}")
         return render_template('index.html', 
                              saldo=saldo, 
                              mensal=mensal, 
@@ -378,62 +341,74 @@ def index():
 @login_required
 def jogos():
     """Lista e cria jogos"""
-    try:
-        # Forçar refresh do banco para garantir dados atualizados
-        forcar_refresh_banco()
+    if request.method == 'POST':
+        # Verificar permissão - apenas admins podem criar jogos
+        if not current_user.is_admin():
+            flash('Apenas administradores podem criar jogos', 'danger')
+            return redirect(url_for('jogos'))
         
-        if request.method == 'POST':
-            # Verificar permissão - apenas admins podem criar jogos
-            if not current_user.is_admin():
-                flash('Apenas administradores podem criar jogos', 'danger')
+        try:
+            # Validações
+            data_jogo = validar_data(request.form['data'])
+            adversario = request.form.get('adversario', '').strip()
+            if not adversario:
+                flash('Adversário é obrigatório', 'danger')
                 return redirect(url_for('jogos'))
             
-            try:
-                # Validações
-                data_jogo = validar_data(request.form['data'])
-                horario_str = request.form.get('horario', '16:00')
-                adversario = request.form.get('adversario', '').strip()
-                if not adversario:
-                    raise ValueError("Adversário é obrigatório")
+            valor_jogo = validar_valor(request.form.get('valor_jogo') or 0)
+            local = request.form.get('local', '').strip()
+            
+            # Criar jogo
+            novo_jogo = Jogo(
+                data=data_jogo,
+                adversario=adversario,
+                local=local,
+                valor_jogo=valor_jogo
+            )
+            db.session.add(novo_jogo)
+            db.session.flush()  # Gera ID do jogo antes do commit final
+
+            # NOTA: Não criar participações automáticas
+            # O usuário deve adicionar jogadores individualmente via página de presenças
+            # Comentado o código que adicionava todos os jogadores automaticamente
+            
+            # Criar participações vazias para todos os jogadores ativos
+            # jogadores = Jogador.query.all()
+            # if not jogadores:
+            #     flash('Cadastre pelo menos um jogador antes de criar um jogo', 'warning')
+            #     db.session.rollback()
+            #     return redirect(url_for('jogos'))
+            
+            # for j in jogadores:
+            #     # Verificar se já existe participação
+            #     participacao_existente = Participacao.query.filter_by(
+            #         jogo_id=novo_jogo.id, 
+            #         jogador_id=j.id
+            #     ).first()
                 
-                # Converter horário
-                from datetime import datetime
-                try:
-                    horario = datetime.strptime(horario_str, '%H:%M').time()
-                except ValueError:
-                    horario = time(16, 0)  # Padrão 16:00
-                
-                # Criar jogo
-                novo_jogo = Jogo(
-                    data=data_jogo,
-                    horario=horario,
-                    adversario=adversario,
-                    local=request.form.get('local', '')
-                )
-                
-                db.session.add(novo_jogo)
-                db.session.commit()
-                flash('Jogo criado com sucesso!', 'success')
-                return redirect(url_for('jogos'))
-                
-            except ValueError as e:
-                flash(f'Erro de validação: {str(e)}', 'danger')
-                logger.warning(f"Erro de validação ao criar jogo: {e}")
-            except Exception as e:
-                db.session.rollback()
-                flash('Erro ao cadastrar jogo', 'danger')
-                logger.error(f"Erro ao criar jogo: {e}")
-        
-        # GET - Listar jogos
+            #     if not participacao_existente:
+            #         db.session.add(Participacao(jogo_id=novo_jogo.id, jogador_id=j.id))
+            
+            db.session.commit()
+            flash('Jogo cadastrado com sucesso!', 'success')
+            logger.info(f"Jogo criado: {novo_jogo}")
+            return redirect(url_for('jogos'))
+            
+        except ValueError as e:
+            db.session.rollback()
+            flash(f'Erro de validação: {str(e)}', 'danger')
+            logger.warning(f"Erro de validação ao criar jogo: {e}")
+        except Exception as e:
+            db.session.rollback()
+            flash('Erro ao cadastrar jogo', 'danger')
+            logger.error(f"Erro ao criar jogo: {e}")
+
+    # GET - Listar jogos
+    try:
         lista_jogos = Jogo.query.order_by(Jogo.data.desc()).all()
-        return render_template('jogos.html', 
-                             jogos=lista_jogos,
-                             data_atual=date.today().isoformat(),
-                             adversario_padrao="",
-                             local_padrao="Campo da UFPA")
-        
+        return render_template('jogos.html', jogos=lista_jogos)
     except Exception as e:
-        logger.error(f"Erro ao carregar jogos: {e}")
+        logger.error(f"Erro ao listar jogos: {e}")
         flash('Erro ao carregar lista de jogos', 'danger')
         return render_template('jogos.html', jogos=[])
 
@@ -441,187 +416,175 @@ def jogos():
 @login_required
 def presencas(jogo_id):
     """Gerencia presenças e pagamentos de um jogo"""
-    try:
-        # Forçar refresh do banco para garantir dados atualizados
-        forcar_refresh_banco()
-        
-        jogo = Jogo.query.get_or_404(jogo_id)
-        participacoes = Participacao.query.filter_by(jogo_id=jogo_id).all()
+    jogo = Jogo.query.get_or_404(jogo_id)
+    participacoes = Participacao.query.filter_by(jogo_id=jogo_id).all()
 
-        if request.method == 'POST':
-            try:
-                # Verificar se é para adicionar novo jogador (admin ou próprio sócio)
-                if request.form.get('acao') == 'add_jogador':
-                    novo_jogador_id = request.form.get('novo_jogador_id')
+    if request.method == 'POST':
+        try:
+            # Verificar se é para adicionar novo jogador (admin ou próprio sócio)
+            if request.form.get('acao') == 'add_jogador':
+                novo_jogador_id = request.form.get('novo_jogador_id')
+                
+                # Se não for admin, só pode adicionar a si mesmo
+                if not current_user.is_admin():
+                    if not current_user.jogador_id:
+                        flash('Você não está associado a nenhum jogador', 'danger')
+                        return redirect(url_for('presencas', jogo_id=jogo_id))
                     
-                    # Se não for admin, só pode adicionar a si mesmo
-                    if not current_user.is_admin():
-                        if not current_user.jogador_id:
-                            flash('Você não está associado a nenhum jogador', 'danger')
-                            return redirect(url_for('presencas', jogo_id=jogo_id))
-                        
-                        # Sócio só pode se adicionar ao jogo
-                        novo_jogador_id = current_user.jogador_id
+                    # Sócio só pode se adicionar ao jogo
+                    novo_jogador_id = current_user.jogador_id
+                
+                if novo_jogador_id:
+                    # Verificar se jogador já não está no jogo
+                    participacao_existente = Participacao.query.filter_by(
+                        jogo_id=jogo_id, 
+                        jogador_id=int(novo_jogador_id)
+                    ).first()
                     
-                    if novo_jogador_id:
-                        # Verificar se jogador já não está no jogo
-                        participacao_existente = Participacao.query.filter_by(
-                            jogo_id=jogo_id, 
-                            jogador_id=int(novo_jogador_id)
-                        ).first()
-                        
-                        if participacao_existente:
-                            if current_user.is_admin():
-                                flash('Este jogador já está adicionado ao jogo', 'warning')
-                            else:
-                                flash('Você já está adicionado a este jogo', 'warning')
-                        else:
-                            # Verificar se o jogador é sócio para adicionar a si mesmo
-                            if not current_user.is_admin():
-                                jogador = Jogador.query.get(current_user.jogador_id)
-                                if jogador.tipo != 'SOCIO':
-                                    flash('Apenas sócios podem se adicionar aos jogos', 'danger')
-                                else:
-                                    # Adicionar sócio ao jogo
-                                    nova_participacao = Participacao(
-                                        jogo_id=jogo_id,
-                                        jogador_id=current_user.jogador_id
-                                    )
-                                    db.session.add(nova_participacao)
-                                    db.session.commit()
-                                    flash('Você foi adicionado ao jogo com sucesso!', 'success')
-                            else:
-                                # Admin adiciona qualquer jogador
-                                nova_participacao = Participacao(
-                                    jogo_id=jogo_id,
-                                    jogador_id=int(novo_jogador_id)
-                                )
-                                db.session.add(nova_participacao)
-                                db.session.commit()
-                                flash('Jogador adicionado ao jogo com sucesso!', 'success')
-                    else:
+                    if participacao_existente:
                         if current_user.is_admin():
-                            flash('Selecione um jogador para adicionar', 'warning')
+                            flash('Este jogador já está adicionado ao jogo', 'warning')
                         else:
-                            flash('Erro ao tentar se adicionar ao jogo', 'danger')
-                    
-                    return redirect(url_for('presencas', jogo_id=jogo_id))
-                
-                # Lógica para atualizar presenças com verificação de permissões
-                for p in participacoes:
-                    # Se não for admin, só permitir editar própria confirmação
-                    if not current_user.is_admin():
-                        # Verificar se é o próprio jogador
-                        if current_user.jogador_id != p.jogador_id:
-                            continue  # Pular outros jogadores
+                            flash('Você já está adicionado a este jogo', 'warning')
+                    else:
+                        # Verificar se o jogador é sócio para adicionar a si mesmo
+                        if not current_user.is_admin():
+                            jogador = Jogador.query.get(novo_jogador_id)
+                            if jogador.tipo != 'SOCIO':
+                                flash('Apenas sócios podem se adicionar aos jogos', 'danger')
+                                return redirect(url_for('presencas', jogo_id=jogo_id))
                         
-                        # Jogadores só podem confirmar própria presença
-                        if f'confirmou_{p.id}' in request.form:
-                            p.confirmou = True
-                            flash('Sua presença foi confirmada!', 'success')
-                            logger.info(f"Jogador {current_user.jogador_id} confirmou presença no jogo {jogo_id}")
+                        nova_participacao = Participacao(
+                            jogo_id=jogo_id,
+                            jogador_id=int(novo_jogador_id)
+                        )
+                        db.session.add(nova_participacao)
+                        db.session.commit()
                         
-                        # Não permitir editar outros campos
-                        continue
-                    
-                    # Admin pode editar todos os campos
-                    p.confirmou = f'confirmou_{p.id}' in request.form
-                    p.pagou = f'pagou_{p.id}' in request.form
-                    
-                    # Validar valor pago
-                    valor_str = request.form.get(f'valor_{p.id}') or '0'
-                    try:
-                        p.valor_pago = validar_valor(valor_str)
-                    except ValueError:
-                        p.valor_pago = 0
-
-                    # Atualizar dados técnicos (gols, expulsões)
-                    gols_str = request.form.get(f'gols_{p.id}') or '0'
-                    try:
-                        p.gols = max(0, int(gols_str))
-                    except ValueError:
-                        p.gols = 0
-                    
-                    p.expulso = f'expulso_{p.id}' in request.form
-
-                    # Lógica Financeira: Só lança se pagou e ainda não foi lançado
-                    if p.pagou and p.valor_pago > 0 and not p.lancado_financeiro:
-                        db.session.add(Financeiro(
-                            data=date.today(),
-                            tipo='PARTIDA',
-                            descricao=f"Pgto Jogo {jogo.data.strftime('%d/%m/%Y')} - {p.jogador.nome}",
-                            valor=p.valor_pago
-                        ))
-                        p.lancado_financeiro = True
+                        if current_user.is_admin():
+                            flash('Jogador adicionado ao jogo com sucesso!', 'success')
+                            logger.info(f"Jogador {novo_jogador_id} adicionado ao jogo {jogo_id} por admin")
+                        else:
+                            flash('Você foi adicionado ao jogo com sucesso!', 'success')
+                            logger.info(f"Sócio {novo_jogador_id} se adicionou ao jogo {jogo_id}")
+                else:
+                    if current_user.is_admin():
+                        flash('Selecione um jogador para adicionar', 'warning')
+                    else:
+                        flash('Erro ao tentar se adicionar ao jogo', 'danger')
                 
-                # Atualizar craque da partida
-                craque_id = request.form.get('craque_id')
-                jogo.craque_id = int(craque_id) if craque_id and craque_id.isdigit() else None
-                
-                # Adicionar Despesa do Jogo
-                desc_despesa = request.form.get('desc_despesa', '').strip()
-                val_despesa = request.form.get('val_despesa')
-                
-                if desc_despesa and val_despesa:
-                    try:
-                        valor_despesa = validar_valor(val_despesa)
-                        db.session.add(Financeiro(
-                            data=date.today(),
-                            tipo='DESPESA',
-                            descricao=f"Despesa Jogo {jogo.data.strftime('%d/%m/%Y')}: {desc_despesa}",
-                            valor=valor_despesa
-                        ))
-                    except ValueError as e:
-                        flash(f'Erro ao adicionar despesa: {str(e)}', 'warning')
-
-                db.session.commit()
-                flash('Presenças e pagamentos atualizados!', 'success')
-                logger.info(f"Presenças atualizadas para jogo {jogo_id}")
                 return redirect(url_for('presencas', jogo_id=jogo_id))
+            
+            # Lógica para atualizar presenças com verificação de permissões
+            for p in participacoes:
+                # Se não for admin, só permitir editar própria confirmação
+                if not current_user.is_admin():
+                    # Verificar se é o próprio jogador
+                    if current_user.jogador_id != p.jogador_id:
+                        continue  # Pular outros jogadores
+                    
+                    # Jogadores só podem confirmar própria presença
+                    if f'confirmou_{p.id}' in request.form:
+                        p.confirmou = True
+                        flash('Sua presença foi confirmada!', 'success')
+                        logger.info(f"Jogador {current_user.jogador_id} confirmou presença no jogo {jogo_id}")
+                    
+                    # Não permitir editar outros campos
+                    continue
                 
-            except Exception as e:
-                db.session.rollback()
-                flash('Erro ao salvar alterações', 'danger')
-                logger.error(f"Erro ao salvar presenças: {e}")
+                # Admin pode editar todos os campos
+                p.confirmou = f'confirmou_{p.id}' in request.form
+                p.pagou = f'pagou_{p.id}' in request.form
+                
+                # Validar valor pago
+                valor_str = request.form.get(f'valor_{p.id}') or '0'
+                try:
+                    p.valor_pago = validar_valor(valor_str)
+                except ValueError:
+                    p.valor_pago = 0
 
-        # Calcular totais
-        total_arrecadado = sum(p.valor_pago for p in participacoes if p.pagou)
-        total_despesas = 0  # Inicia sem valor do campo
-        total_confirmados = sum(1 for p in participacoes if p.confirmou)
-        
-        # Buscar despesas da partida
-        data_jogo = jogo.data.strftime('%d/%m/%Y')
-        despesas_partida = Financeiro.query.filter(
-            Financeiro.descricao.like(f"Despesa Jogo {data_jogo}%")
-        ).all()
-        
-        # Calcular total de despesas reais (apenas despesas cadastradas)
-        total_despesas = sum(d.valor for d in despesas_partida)
-        
-        # Criar dicionário de participações para o template
-        participacoes_existentes = {p.id: p for p in participacoes}
-        
-        # Buscar todos os jogadores para o select de adicionar
-        todos_jogadores = Jogador.query.order_by(Jogador.nome).all()
-        
-        # Criar conjunto de IDs de jogadores já no jogo para filtro
-        jogadores_no_jogo = set(p.jogador_id for p in participacoes)
-        
-        return render_template('presencas.html', 
-                             jogo=jogo, 
-                             participacoes=participacoes,
-                             participacoes_existentes=participacoes_existentes,
-                             todos_jogadores=todos_jogadores,
-                             jogadores_no_jogo=jogadores_no_jogo,
-                             total_arrecadado=total_arrecadado,
-                             total_despesas=total_despesas,
-                             total_confirmados=total_confirmados,
-                             despesas_partida=despesas_partida)
+                # Atualizar dados técnicos (gols, expulsões)
+                gols_str = request.form.get(f'gols_{p.id}') or '0'
+                try:
+                    p.gols = max(0, int(gols_str))
+                except ValueError:
+                    p.gols = 0
+                
+                p.expulso = f'expulso_{p.id}' in request.form
+
+                # Lógica Financeira: Só lança se pagou e ainda não foi lançado
+                if p.pagou and p.valor_pago > 0 and not p.lancado_financeiro:
+                    db.session.add(Financeiro(
+                        data=date.today(),
+                        tipo='PARTIDA',
+                        descricao=f"Pgto Jogo {jogo.data.strftime('%d/%m/%Y')} - {p.jogador.nome}",
+                        valor=p.valor_pago
+                    ))
+                    p.lancado_financeiro = True
+            
+            # Atualizar craque da partida
+            craque_id = request.form.get('craque_id')
+            jogo.craque_id = int(craque_id) if craque_id and craque_id.isdigit() else None
+            
+            # Adicionar Despesa do Jogo
+            desc_despesa = request.form.get('desc_despesa', '').strip()
+            val_despesa = request.form.get('val_despesa')
+            
+            if desc_despesa and val_despesa:
+                try:
+                    valor_despesa = validar_valor(val_despesa)
+                    db.session.add(Financeiro(
+                        data=date.today(),
+                        tipo='DESPESA',
+                        descricao=f"Despesa Jogo {jogo.data.strftime('%d/%m/%Y')}: {desc_despesa}",
+                        valor=valor_despesa
+                    ))
+                except ValueError as e:
+                    flash(f'Erro ao adicionar despesa: {str(e)}', 'warning')
+
+            db.session.commit()
+            flash('Presenças e pagamentos atualizados!', 'success')
+            logger.info(f"Presenças atualizadas para jogo {jogo_id}")
+            return redirect(url_for('presencas', jogo_id=jogo_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('Erro ao salvar alterações', 'danger')
+            logger.error(f"Erro ao salvar presenças: {e}")
+
+    # Calcular totais
+    total_arrecadado = sum(p.valor_pago for p in participacoes if p.pagou)
+    total_despesas = jogo.valor_jogo  # Despesa do jogo (valor do campo/aluguel)
+    total_confirmados = sum(1 for p in participacoes if p.confirmou)
     
-    except Exception as e:
-        logger.error(f"Erro ao carregar presenças: {e}")
-        flash('Erro ao carregar página de presenças', 'danger')
-        return redirect(url_for('jogos'))
+    # Buscar despesas da partida
+    data_jogo = jogo.data.strftime('%d/%m/%Y')
+    despesas_partida = Financeiro.query.filter(
+        Financeiro.descricao.like(f"Despesa Jogo {data_jogo}%")
+    ).all()
+    
+    # Calcular total de despesas reais
+    total_despesas = sum(d.valor for d in despesas_partida) + jogo.valor_jogo
+    
+    # Criar dicionário de participações para o template
+    participacoes_existentes = {p.id: p for p in participacoes}
+    
+    # Buscar todos os jogadores para o select de adicionar
+    todos_jogadores = Jogador.query.order_by(Jogador.nome).all()
+    
+    # Criar conjunto de IDs de jogadores já no jogo para filtro
+    jogadores_no_jogo = set(p.jogador_id for p in participacoes)
+    
+    return render_template('presencas.html', 
+                         jogo=jogo, 
+                         participacoes=participacoes,
+                         participacoes_existentes=participacoes_existentes,
+                         todos_jogadores=todos_jogadores,
+                         jogadores_no_jogo=jogadores_no_jogo,
+                         total_arrecadado=total_arrecadado,
+                         total_despesas=total_despesas,
+                         total_confirmados=total_confirmados,
+                         despesas_partida=despesas_partida)
 
 @app.route('/extornar-despesa/<int:despesa_id>', methods=['POST'])
 def extornar_despesa(despesa_id):
@@ -678,7 +641,8 @@ def pdf_partida(jogo_id):
         info_data = [
             ['Adversário:', jogo.adversario or 'Não informado'],
             ['Data:', jogo.data.strftime('%d/%m/%Y')],
-            ['Local:', jogo.local or 'Não informado']
+            ['Local:', jogo.local or 'Não informado'],
+            ['Valor do Jogo:', f'R$ {jogo.valor_jogo:.2f}']
         ]
         
         info_table = Table(info_data, colWidths=[2*inch, 3*inch])
@@ -1017,80 +981,86 @@ def cadastrar_senha_socio():
 @login_required
 def jogadores():
     """Lista e cadastra jogadores"""
-    try:
-        # Forçar refresh do banco para garantir dados atualizados
-        forcar_refresh_banco()
-        
-        if request.method == 'POST':
-            # Verificar permissão para operações de escrita
-            if not current_user.is_admin():
-                flash('Apenas administradores podem cadastrar ou editar jogadores', 'danger')
+    if request.method == 'POST':
+        # Verificar permissão para operações de escrita
+        if not current_user.is_admin():
+            flash('Apenas administradores podem cadastrar ou editar jogadores', 'danger')
+            return redirect(url_for('jogadores'))
+            
+        try:
+            # Verificar se é uma edição
+            if 'editar_id' in request.form:
+                # Edição de jogador existente
+                jogador_id = int(request.form['editar_id'])
+                jogador = Jogador.query.get_or_404(jogador_id)
+                
+                nome = request.form['editar_nome'].strip()
+                if not nome:
+                    flash('Nome é obrigatório', 'danger')
+                    return redirect(url_for('jogadores'))
+                
+                # Verificar se já existe outro jogador com mesmo nome
+                jogador_existente = Jogador.query.filter(
+                    Jogador.nome == nome, 
+                    Jogador.id != jogador_id
+                ).first()
+                if jogador_existente:
+                    flash(f'Jogador "{nome}" já está cadastrado', 'warning')
+                    return redirect(url_for('jogadores'))
+                
+                jogador.nome = nome
+                jogador.telefone = request.form.get('editar_telefone', '').strip()
+                jogador.tipo = validar_tipo_jogador(request.form['editar_tipo'])
+                jogador.ativo = 'editar_ativo' in request.form
+                jogador.nativo = 'editar_nativo' in request.form
+                
+                db.session.commit()
+                flash(f'Jogador "{nome}" atualizado com sucesso!', 'success')
+                logger.info(f"Jogador atualizado: {jogador}")
                 return redirect(url_for('jogadores'))
             
-            try:
-                # Verificar se é uma edição
-                if 'editar_id' in request.form:
-                    # Edição de jogador existente
-                    jogador_id = int(request.form['editar_id'])
-                    jogador = Jogador.query.get(jogador_id)
-                    
-                    if not jogador:
-                        flash('Jogador não encontrado', 'danger')
-                        return redirect(url_for('jogadores'))
-                    
-                    # Atualizar dados
-                    jogador.nome = request.form.get('nome', '').strip()
-                    jogador.telefone = request.form.get('telefone', '').strip()
-                    jogador.tipo = request.form.get('tipo', 'SOCIO')
-                    jogador.ativo = 'ativo' in request.form
-                    jogador.nativo = 'nativo' in request.form
-                    
-                    db.session.commit()
-                    flash('Jogador atualizado com sucesso!', 'success')
-                    return redirect(url_for('jogadores'))
-                else:
-                    # Novo jogador
-                    nome = request.form.get('nome', '').strip()
-                    if not nome:
-                        flash('Nome é obrigatório', 'danger')
-                        return redirect(url_for('jogadores'))
-                    
-                    # Criar novo jogador
-                    novo_jogador = Jogador(
-                        nome=nome,
-                        telefone=request.form.get('telefone', '').strip(),
-                        tipo=request.form.get('tipo', 'SOCIO'),
-                        ativo='ativo' in request.form,
-                        nativo='nativo' in request.form
-                    )
-                    
-                    db.session.add(novo_jogador)
-                    db.session.commit()
-                    flash('Jogador cadastrado com sucesso!', 'success')
-                    return redirect(url_for('jogadores'))
-                    
-            except ValueError as e:
-                db.session.rollback()
-                flash(f'Erro de validação: {str(e)}', 'danger')
-            except Exception as e:
-                db.session.rollback()
-                logger.error(f"Erro ao salvar jogador: {e}")
-                flash('Erro ao salvar jogador', 'danger')
-        
-        # GET - Listar jogadores
-        jogadores = Jogador.query.order_by(Jogador.nome).all()
-        return render_template('jogadores.html', 
-                             jogadores=jogadores,
-                             nome_padrao="",
-                             telefone_padrao="",
-                             tipo_padrao="SOCIO",
-                             ativo_padrao=True,
-                             nativo_padrao=False)
-        
+            # Cadastro de novo jogador
+            nome = request.form['nome'].strip()
+            if not nome:
+                flash('Nome é obrigatório', 'danger')
+                return redirect(url_for('jogadores'))
+            
+            telefone = request.form.get('telefone', '').strip()
+            tipo = validar_tipo_jogador(request.form['tipo'])
+            
+            # Verificar se já existe jogador com mesmo nome
+            jogador_existente = Jogador.query.filter_by(nome=nome).first()
+            if jogador_existente:
+                flash(f'Jogador "{nome}" já está cadastrado', 'warning')
+                return redirect(url_for('jogadores'))
+            
+            novo_jogador = Jogador(nome=nome, telefone=telefone, tipo=tipo)
+            novo_jogador.ativo = 'ativo' in request.form
+            novo_jogador.nativo = 'nativo' in request.form
+            db.session.add(novo_jogador)
+            db.session.commit()
+            flash(f'Jogador "{nome}" cadastrado com sucesso!', 'success')
+            logger.info(f"Jogador criado: {novo_jogador}")
+            return redirect(url_for('jogadores'))
+            
+        except ValueError as e:
+            db.session.rollback()
+            flash(f'Erro de validação: {str(e)}', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            flash('Erro ao processar jogador', 'danger')
+            logger.error(f"Erro ao processar jogador: {e}")
+    
+    try:
+        jogadores_list = Jogador.query.order_by(Jogador.nome).all()
+        return render_template('jogadores.html', jogadores=jogadores_list)
     except Exception as e:
-        logger.error(f"Erro ao carregar lista de jogadores: {e}")
+        logger.error(f"Erro ao listar jogadores: {e}")
         flash('Erro ao carregar lista de jogadores', 'danger')
         return render_template('jogadores.html', jogadores=[])
+
+@app.route('/jogador-dados/<int:jogador_id>', methods=['GET'])
+def jogador_dados(jogador_id):
     """Retorna informações completas do jogador em formato JSON para edição via AJAX"""
     # Verificar se é requisição AJAX
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1225,7 +1195,7 @@ def associados():
                 return redirect(url_for('associados'))
             
             # Criar mensalidade
-            nova_mensalidade = Financeiro(
+            db.session.add(Financeiro(
                 data=date.today(),
                 tipo='MENSALIDADE',
                 descricao=f"Mensalidade {mes}/{ano} - {jogador.nome}",
@@ -1233,19 +1203,8 @@ def associados():
                 jogador_id=jogador.id,
                 mes_referencia=mes_ano,
                 ano_referencia=ano_int
-            )
-            
-            db.session.add(nova_mensalidade)
+            ))
             db.session.commit()
-            
-            # Verificar se a mensalidade foi realmente salva
-            mensalidade_salva = Financeiro.query.filter_by(id=nova_mensalidade.id).first()
-            logger.info(f"Mensalidade salva no banco: {mensalidade_salva}")
-            
-            # Forçar refresh para garantir que os dados apareçam na lista
-            db.session.refresh(nova_mensalidade)
-            db.session.expire_all()
-            
             flash(f'Mensalidade de {mes}/{ano} para {jogador.nome} lançada com sucesso!', 'success')
             logger.info(f"Mensalidade lançada: {mes}/{ano} - {jogador.nome} - R$ {valor}")
             return redirect(url_for('associados'))
@@ -1259,10 +1218,6 @@ def associados():
             logger.error(f"Erro ao lançar mensalidade: {e}")
     
     # Construir query base com filtros
-    # Forçar refresh do banco para garantir dados atualizados
-    db.session.expire_all()
-    db.session.flush()
-    
     query = Financeiro.query.filter_by(tipo='MENSALIDADE')
     
     # Aplicar filtros se existirem
@@ -1318,10 +1273,7 @@ def associados():
                          anos=anos,
                          meses=meses,
                          total_geral=total_geral,
-                         filtros=filtros_atuais,
-                         ano_atual=date.today().year,
-                         mes_atual=date.today().strftime('%B'),
-                         valor_padrao="50.00")
+                         filtros=filtros_atuais)
 
 
 
@@ -2122,10 +2074,7 @@ def pdf_caixa():
 def financeiro():
     """Extrato financeiro com filtro por período"""
     try:
-        # Forçar refresh do banco para garantir dados atualizados
-        forcar_refresh_banco()
-        
-        # Parâmetros de filtros da URL
+        # Obter filtros da URL
         data_inicio_str = request.args.get('data_inicio', '')
         data_fim_str = request.args.get('data_fim', '')
         tipo_filtro = request.args.get('tipo', '')
@@ -2183,23 +2132,12 @@ def financeiro():
                 'saldo_acumulado': saldo_atual
             })
         
-        descricao_entrada_padrao = ""
-        valor_entrada_padrao = "100.00"
-        descricao_despesa_padrao = ""
-        valor_despesa_padrao = "50.00"
-        categoria_despesa_padrao = ""
-        
-        return render_template('financeiro.html',
+        return render_template('financeiro.html', 
                              movimentacoes=movimentacoes,
                              total_entradas=total_entradas,
                              total_despesas=total_despesas,
                              saldo_atual=saldo_atual,
-                             filtros=filtros,
-                             descricao_entrada_padrao=descricao_entrada_padrao,
-                             valor_entrada_padrao=valor_entrada_padrao,
-                             descricao_despesa_padrao=descricao_despesa_padrao,
-                             valor_despesa_padrao=valor_despesa_padrao,
-                             categoria_despesa_padrao=categoria_despesa_padrao)
+                             filtros=filtros)
     except Exception as e:
         logger.error(f"Erro ao carregar financeiro: {e}")
         flash('Erro ao carregar extrato financeiro', 'danger')
@@ -2214,9 +2152,6 @@ def financeiro():
 def ranking():
     """Página de ranking dos atletas"""
     try:
-        # Forçar refresh do banco para garantir dados atualizados
-        forcar_refresh_banco()
-        
         # Buscar todos os jogadores
         jogadores = Jogador.query.all()
         
@@ -2793,91 +2728,6 @@ def calcular_estatisticas_placares():
         logger.error(f"Erro ao calcular estatísticas: {e}")
         return None
 
-# ================= MIGRATION ROUTE =================
-
-@app.route('/migrate-horario')
-def migrate_horario():
-    """Rota temporária para migrar a coluna horario"""
-    try:
-        logger.info("Iniciando migração da coluna horario...")
-        
-        # Verificar se a coluna já existe
-        inspector = db.inspect(db.engine)
-        
-        # Verificar se a tabela existe
-        tables = inspector.get_table_names()
-        logger.info(f"Tabelas encontradas: {tables}")
-        
-        if 'jogo' not in tables:
-            logger.info("Tabela 'jogo' não encontrada. Criando todas as tabelas...")
-            db.create_all()
-            logger.info("Tabelas criadas com sucesso!")
-            return "Tabelas criadas com sucesso!"
-        
-        columns = inspector.get_columns('jogo')
-        column_names = [col['name'] for col in columns]
-        logger.info(f"Colunas atuais em 'jogo': {column_names}")
-        
-        if 'horario' not in column_names:
-            logger.info("Adicionando coluna 'horario' à tabela jogo...")
-            
-            # SQL para adicionar a coluna (PostgreSQL)
-            if 'postgresql' in str(db.engine.url).lower():
-                sql = text("""
-                ALTER TABLE jogo 
-                ADD COLUMN horario TIME DEFAULT '19:00:00' NOT NULL;
-                """)
-                logger.info("Usando PostgreSQL para migração")
-            else:
-                # SQLite (para desenvolvimento local)
-                sql = text("""
-                ALTER TABLE jogo 
-                ADD COLUMN horario TEXT DEFAULT '19:00:00' NOT NULL;
-                """)
-                logger.info("Usando SQLite para migração")
-            
-            db.session.execute(sql)
-            db.session.commit()
-            
-            logger.info("Coluna 'horario' adicionada com sucesso!")
-            
-            # Verificar novamente
-            columns = inspector.get_columns('jogo')
-            column_names = [col['name'] for col in columns]
-            
-            return f"Coluna 'horario' adicionada com sucesso! Colunas: {column_names}"
-            
-        else:
-            logger.info("Coluna 'horario' já existe na tabela jogo")
-            return "Coluna 'horario' já existe na tabela jogo"
-            
-    except Exception as e:
-        logger.error(f"Erro na migração: {e}")
-        db.session.rollback()
-        return f"Erro na migração: {e}"
-
-@app.route('/debug-info')
-def debug_info():
-    """Rota para debug de informações do sistema"""
-    try:
-        info = {
-            'database_url': str(db.engine.url).replace('password', '***'),
-            'tables': [],
-            'jogo_columns': []
-        }
-        
-        inspector = db.inspect(db.engine)
-        tables = inspector.get_table_names()
-        info['tables'] = tables
-        
-        if 'jogo' in tables:
-            columns = inspector.get_columns('jogo')
-            info['jogo_columns'] = [col['name'] for col in columns]
-        
-        return jsonify(info)
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
 # ================= WHATSAPP GRUPOS =================
 
 @app.route('/whatsapp/grupo', methods=['GET', 'POST'])
@@ -2975,27 +2825,13 @@ Diretoria da Associação UFPA
         flash('Erro ao preparar envio de WhatsApp', 'danger')
         return redirect(url_for('index'))
 
-# ================= FIM WHATSAPP GRUPOS =================
 
 if __name__ == '__main__':
-    print("Iniciando servidor Flask...")
-    
     with app.app_context():
-        # Verificar se o arquivo do banco existe
-        import os
-        db_file = "associacao.db"
-        if not os.path.exists(db_file):
-            print(f"Criando arquivo do banco: {db_file}")
-        
         # Criar todas as tabelas se não existirem
-        try:
-            db.create_all()
-            print(f"Banco de dados criado/verificado: {db_file}")
-        except Exception as e:
-            print(f"Erro ao criar banco: {e}")
-            exit(1)
+        db.create_all()
         
-        # Verificar e adicionar colunas faltantes
+        # Verificar e adicionar colunas faltantes no modelo Financeiro (migração)
         try:
             from sqlalchemy import inspect, text
             inspector = inspect(db.engine)
@@ -3004,46 +2840,36 @@ if __name__ == '__main__':
             financeiro_columns = [col['name'] for col in inspector.get_columns('financeiro')]
             
             if 'jogador_id' not in financeiro_columns:
-                print("Adicionando coluna jogador_id...")
+                logger.info("Adicionando coluna jogador_id ao banco de dados...")
                 db.session.execute(text('ALTER TABLE financeiro ADD COLUMN jogador_id INTEGER'))
                 db.session.commit()
             
             if 'mes_referencia' not in financeiro_columns:
-                print("Adicionando coluna mes_referencia...")
+                logger.info("Adicionando coluna mes_referencia ao banco de dados...")
                 db.session.execute(text('ALTER TABLE financeiro ADD COLUMN mes_referencia VARCHAR(20)'))
                 db.session.commit()
             
             if 'ano_referencia' not in financeiro_columns:
-                print("Adicionando coluna ano_referencia...")
+                logger.info("Adicionando coluna ano_referencia ao banco de dados...")
                 db.session.execute(text('ALTER TABLE financeiro ADD COLUMN ano_referencia INTEGER'))
                 db.session.commit()
-                
+            
             # Verificar colunas na tabela jogador
             jogador_columns = [col['name'] for col in inspector.get_columns('jogador')]
             
             if 'ativo' not in jogador_columns:
-                print("Adicionando coluna ativo à tabela jogador...")
+                logger.info("Adicionando coluna ativo à tabela jogador...")
                 db.session.execute(text('ALTER TABLE jogador ADD COLUMN ativo BOOLEAN DEFAULT 1'))
                 db.session.commit()
             
             if 'nativo' not in jogador_columns:
-                print("Adicionando coluna nativo à tabela jogador...")
+                logger.info("Adicionando coluna nativo à tabela jogador...")
                 db.session.execute(text('ALTER TABLE jogador ADD COLUMN nativo BOOLEAN DEFAULT 0'))
-                db.session.commit()
-            
-            # Verificar colunas na tabela jogo
-            jogo_columns = [col['name'] for col in inspector.get_columns('jogo')]
-            
-            if 'horario' not in jogo_columns:
-                print("Adicionando coluna horario à tabela jogo...")
-                db.session.execute(text('ALTER TABLE jogo ADD COLUMN horario TIME DEFAULT "19:00:00"'))
                 db.session.commit()
                 
         except Exception as e:
             logger.warning(f"Aviso ao verificar colunas: {e}")
         
-        print("Banco de dados inicializado com sucesso!")
-        print("Servidor disponível em: http://localhost:5000")
-        print("WhatsApp Grupo: http://localhost:5000/whatsapp/grupo")
+        logger.info("Banco de dados inicializado")
     
     app.run(debug=True, host='0.0.0.0', port=5000)
