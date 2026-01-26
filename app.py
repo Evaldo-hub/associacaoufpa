@@ -442,17 +442,49 @@ def jogos():
 def presencas(jogo_id):
     """Gerencia presenças e pagamentos de um jogo"""
     try:
+        logger.info(f"Acessando presenças do jogo {jogo_id} - Usuário: {current_user.username}")
+        
         # Forçar refresh do banco para garantir dados atualizados
         forcar_refresh_banco()
         
         jogo = Jogo.query.get_or_404(jogo_id)
+        logger.info(f"Jogo encontrado: {jogo.adversario} em {jogo.data}")
+        
         participacoes = Participacao.query.filter_by(jogo_id=jogo_id).all()
+        logger.info(f"Participações encontradas: {len(participacoes)}")
 
         if request.method == 'POST':
             try:
+                logger.info("Processando formulário POST de presenças")
+                
+                # Verificar se o jogo tem mais de 15 dias - bloquear edição de valores
+                from datetime import date, timedelta
+                data_jogo = jogo.data
+                hoje = date.today()
+                diferenca_dias = (hoje - data_jogo).days
+                
+                if diferenca_dias > 15:
+                    # Verificar se está tentando editar valores
+                    tem_edicao_valores = False
+                    
+                    # Verificar edição de valores de jogadores
+                    for key in request.form.keys():
+                        if key.startswith('valor_') or key.startswith('pagou_'):
+                            tem_edicao_valores = True
+                            break
+                    
+                    # Verificar se está adicionando despesa
+                    if request.form.get('acao') == 'add_despesa':
+                        tem_edicao_valores = True
+                    
+                    if tem_edicao_valores:
+                        flash('Jogos com mais de 15 dias não permitem edição de valores (pagamentos e despesas)!', 'warning')
+                        return redirect(url_for('presencas', jogo_id=jogo_id))
+                
                 # Verificar se é para adicionar novo jogador (admin ou próprio sócio)
                 if request.form.get('acao') == 'add_jogador':
                     novo_jogador_id = request.form.get('novo_jogador_id')
+                    logger.info(f"Tentando adicionar jogador: {novo_jogador_id}")
                     
                     # Se não for admin, só pode adicionar a si mesmo
                     if not current_user.is_admin():
@@ -490,6 +522,7 @@ def presencas(jogo_id):
                                     db.session.add(nova_participacao)
                                     db.session.commit()
                                     flash('Você foi adicionado ao jogo com sucesso!', 'success')
+                                    logger.info(f"Sócio {current_user.username} adicionado ao jogo {jogo_id}")
                             else:
                                 # Admin adiciona qualquer jogador
                                 nova_participacao = Participacao(
@@ -499,6 +532,7 @@ def presencas(jogo_id):
                                 db.session.add(nova_participacao)
                                 db.session.commit()
                                 flash('Jogador adicionado ao jogo com sucesso!', 'success')
+                                logger.info(f"Admin adicionou jogador {novo_jogador_id} ao jogo {jogo_id}")
                     else:
                         if current_user.is_admin():
                             flash('Selecione um jogador para adicionar', 'warning')
@@ -508,6 +542,7 @@ def presencas(jogo_id):
                     return redirect(url_for('presencas', jogo_id=jogo_id))
                 
                 # Lógica para atualizar presenças com verificação de permissões
+                logger.info("Atualizando presenças existentes")
                 for p in participacoes:
                     # Se não for admin, só permitir editar própria confirmação
                     if not current_user.is_admin():
@@ -553,6 +588,7 @@ def presencas(jogo_id):
                             valor=p.valor_pago
                         ))
                         p.lancado_financeiro = True
+                        logger.info(f"Lançado financeiro para jogador {p.jogador.nome}: R${p.valor_pago}")
                 
                 # Atualizar craque da partida
                 craque_id = request.form.get('craque_id')
@@ -571,9 +607,11 @@ def presencas(jogo_id):
                             descricao=f"Despesa Jogo {jogo.data.strftime('%d/%m/%Y')}: {desc_despesa}",
                             valor=valor_despesa
                         ))
+                        logger.info(f"Despesa adicionada: {desc_despesa} - R${valor_despesa}")
                     except ValueError as e:
                         flash(f'Erro ao adicionar despesa: {str(e)}', 'warning')
 
+                logger.info("Fazendo commit das alterações...")
                 db.session.commit()
                 flash('Presenças e pagamentos atualizados!', 'success')
                 logger.info(f"Presenças atualizadas para jogo {jogo_id}")
@@ -581,8 +619,10 @@ def presencas(jogo_id):
                 
             except Exception as e:
                 db.session.rollback()
-                flash('Erro ao salvar alterações', 'danger')
                 logger.error(f"Erro ao salvar presenças: {e}")
+                import traceback
+                traceback.print_exc()
+                flash(f'Erro ao salvar alterações: {str(e)}', 'danger')
 
         # Calcular totais
         total_arrecadado = sum(p.valor_pago for p in participacoes if p.pagou)
@@ -597,6 +637,13 @@ def presencas(jogo_id):
         
         # Calcular total de despesas reais (apenas despesas cadastradas)
         total_despesas = sum(d.valor for d in despesas_partida)
+        
+        # Buscar todas as despesas do sistema
+        todas_despesas = Financeiro.query.filter_by(tipo='DESPESA').order_by(Financeiro.data.desc()).all()
+        
+        # Calcular diferença de dias para o template
+        from datetime import date
+        data_jogo_hoje = date.today()
         
         # Criar dicionário de participações para o template
         participacoes_existentes = {p.id: p for p in participacoes}
@@ -616,7 +663,9 @@ def presencas(jogo_id):
                              total_arrecadado=total_arrecadado,
                              total_despesas=total_despesas,
                              total_confirmados=total_confirmados,
-                             despesas_partida=despesas_partida)
+                             despesas_partida=despesas_partida,
+                             todas_despesas=todas_despesas,
+                             data_jogo_hoje=data_jogo_hoje)
     
     except Exception as e:
         logger.error(f"Erro ao carregar presenças: {e}")
@@ -631,6 +680,16 @@ def extornar_despesa(despesa_id):
     if despesa.tipo != 'DESPESA':
         flash('Apenas despesas podem ser extornadas', 'danger')
         return redirect(url_for('jogos'))
+    
+    # Verificar se a despesa tem mais de 15 dias
+    from datetime import date, timedelta
+    data_despesa = despesa.data
+    hoje = date.today()
+    diferenca_dias = (hoje - data_despesa).days
+    
+    if diferenca_dias > 15:
+        flash('Despesas com mais de 15 dias não podem ser extornadas!', 'warning')
+        return redirect(request.referrer or url_for('jogos'))
     
     try:
         db.session.delete(despesa)
