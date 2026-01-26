@@ -123,7 +123,7 @@ class Jogo(db.Model):
     """Modelo para jogos"""
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.Date, nullable=False, index=True)
-    horario = db.Column(db.Time, nullable=False, default=time(19, 0))  # 19:00 por padrão
+    horario = db.Column(db.Time, nullable=False, default=time(16, 0))  # 16:00 por padrão
     adversario = db.Column(db.String(100))
     local = db.Column(db.String(100))
     valor_jogo = db.Column(db.Float, default=0)
@@ -391,7 +391,7 @@ def jogos():
             try:
                 # Validações
                 data_jogo = validar_data(request.form['data'])
-                horario_str = request.form.get('horario', '19:00')
+                horario_str = request.form.get('horario', '16:00')
                 adversario = request.form.get('adversario', '').strip()
                 if not adversario:
                     raise ValueError("Adversário é obrigatório")
@@ -401,7 +401,7 @@ def jogos():
                 try:
                     horario = datetime.strptime(horario_str, '%H:%M').time()
                 except ValueError:
-                    horario = time(19, 0)  # Padrão 19:00
+                    horario = time(16, 0)  # Padrão 16:00
                 
                 # Criar jogo
                 novo_jogo = Jogo(
@@ -2913,12 +2913,13 @@ def whatsapp_grupo():
 ⚽ CONVOCAÇÃO DE JOGO
 
 📅 Data: {jogo.data.strftime('%d/%m/%Y')}
-⏰ Horário: {jogo.horario.strftime('%H:%M') if jogo.horario else '19:00'}
+⏰ Horário: {jogo.horario.strftime('%H:%M') if jogo.horario else '16:00'}
 📍 Local: {jogo.local or 'Campo da UFPA'}
 🆚 Adversário: {jogo.adversario}
 
 👥 Todos os jogadores estão convidados!
 Por favor, confirmem presença no app.
+Valor por Jogador R$20,00.
 
 📲 Acesse: https://associacao-ced4.onrender.com/presencas/{jogo.id}
 
@@ -2947,6 +2948,10 @@ Olá, grupo!
 - Fiquem atentos às convocações
 - Participem ativamente dos jogos
 - Contribuam com o crescimento da associação
+
+👥 Todos os jogadores estão convidados!
+Por favor, confirmem presença no app.
+Valor por Jogador R$20,00.
 
 💡 Dúvidas ou sugestões?
 Entre em contato com a administração.
