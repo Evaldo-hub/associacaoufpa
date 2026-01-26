@@ -2823,17 +2823,17 @@ def migrate_horario():
             
             # SQL para adicionar a coluna (PostgreSQL)
             if 'postgresql' in str(db.engine.url).lower():
-                sql = """
+                sql = text("""
                 ALTER TABLE jogo 
                 ADD COLUMN horario TIME DEFAULT '19:00:00' NOT NULL;
-                """
+                """)
                 logger.info("Usando PostgreSQL para migração")
             else:
                 # SQLite (para desenvolvimento local)
-                sql = """
+                sql = text("""
                 ALTER TABLE jogo 
                 ADD COLUMN horario TEXT DEFAULT '19:00:00' NOT NULL;
-                """
+                """)
                 logger.info("Usando SQLite para migração")
             
             db.session.execute(sql)
