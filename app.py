@@ -2790,6 +2790,64 @@ def calcular_estatisticas_placares():
         logger.error(f"Erro ao calcular estatísticas: {e}")
         return None
 
+# ================= MIGRATION ROUTE =================
+
+@app.route('/migrate-horario')
+def migrate_horario():
+    """Rota temporária para migrar a coluna horario"""
+    try:
+        with app.app_context():
+            # Verificar se a coluna já existe
+            inspector = db.inspect(db.engine)
+            
+            # Verificar se a tabela existe
+            tables = inspector.get_table_names()
+            
+            if 'jogo' not in tables:
+                logger.info("Tabela 'jogo' não encontrada. Criando todas as tabelas...")
+                db.create_all()
+                logger.info("Tabelas criadas com sucesso!")
+                return "Tabelas criadas com sucesso!"
+            
+            columns = inspector.get_columns('jogo')
+            column_names = [col['name'] for col in columns]
+            
+            if 'horario' not in column_names:
+                logger.info("Adicionando coluna 'horario' à tabela jogo...")
+                
+                # SQL para adicionar a coluna (PostgreSQL)
+                if 'postgresql' in str(db.engine.url).lower():
+                    sql = """
+                    ALTER TABLE jogo 
+                    ADD COLUMN horario TIME DEFAULT '19:00:00' NOT NULL;
+                    """
+                else:
+                    # SQLite (para desenvolvimento local)
+                    sql = """
+                    ALTER TABLE jogo 
+                    ADD COLUMN horario TEXT DEFAULT '19:00:00' NOT NULL;
+                    """
+                
+                db.session.execute(sql)
+                db.session.commit()
+                
+                logger.info("Coluna 'horario' adicionada com sucesso!")
+                
+                # Verificar novamente
+                columns = inspector.get_columns('jogo')
+                column_names = [col['name'] for col in columns]
+                
+                return f"Coluna 'horario' adicionada com sucesso! Colunas: {column_names}"
+                
+            else:
+                logger.info("Coluna 'horario' já existe na tabela jogo")
+                return "Coluna 'horario' já existe na tabela jogo"
+                
+    except Exception as e:
+        logger.error(f"Erro na migração: {e}")
+        db.session.rollback()
+        return f"Erro na migração: {e}"
+
 # ================= WHATSAPP GRUPOS =================
 
 @app.route('/whatsapp/grupo', methods=['GET', 'POST'])
