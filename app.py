@@ -256,19 +256,27 @@ def pwa_entry():
 @app.route("/login/", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
+        logger.info(f"Usuário já autenticado: {current_user.username}")
         return redirect('/')
 
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
+        
+        logger.info(f"Tentativa de login para usuário: {username}")
 
         try:
             user = User.query.filter_by(username=username).first()
 
             if user and user.check_password(password):
                 login_user(user)
-                return redirect(request.args.get("next") or '/')
+                logger.info(f"Login bem-sucedido para: {username}")
+                next_page = request.args.get("next")
+                redirect_url = next_page or '/'
+                logger.info(f"Redirecionando para: {redirect_url}")
+                return redirect(redirect_url)
 
+            logger.warning(f"Credenciais inválidas para usuário: {username}")
             flash("Usuário ou senha inválidos", "danger")
         except Exception as e:
             logger.error(f"Erro no login: {e}")
@@ -289,6 +297,8 @@ def logout():
 @login_required
 def index():
     """Dashboard principal com resumo financeiro, artilharia e próximo jogo"""
+    logger.info(f"Acessando dashboard - Usuário: {current_user.username}")
+    
     try:
         # Forçar refresh do banco para garantir dados atualizados
         forcar_refresh_banco()
@@ -340,6 +350,7 @@ def index():
         # Pegar apenas os top 10 para o gráfico
         top_artilheiros = artilharia[:10]
         
+        logger.info(f"Dashboard carregado com sucesso para {current_user.username}")
         return render_template('index.html', 
                              saldo=saldo, 
                              mensal=mensal, 
