@@ -1127,12 +1127,30 @@ def jogadores():
                         flash('Jogador não encontrado', 'danger')
                         return redirect(url_for('jogadores'))
                     
+                    logger.info(f"EDITANDO JOGADOR {jogador_id}: {jogador.nome}")
+                    logger.info(f"Dados recebidos: {dict(request.form)}")
+                    
                     # Atualizar dados
-                    jogador.nome = request.form.get('nome', '').strip()
-                    jogador.telefone = request.form.get('telefone', '').strip()
-                    jogador.tipo = request.form.get('tipo', 'SOCIO')
-                    jogador.ativo = 'ativo' in request.form
-                    jogador.nativo = 'nativo' in request.form
+                    nome_novo = request.form.get('editar_nome', '').strip()
+                    logger.info(f"Nome recebido: '{nome_novo}' (vazio: {not nome_novo})")
+                    logger.info(f"Dados completos: {dict(request.form)}")
+                    
+                    if not nome_novo:
+                        logger.warning("Nome vazio recebido! Usando nome original.")
+                        nome_novo = jogador.nome  # Manter nome original se vazio
+                    
+                    jogador.nome = nome_novo
+                    jogador.telefone = request.form.get('editar_telefone', '').strip()
+                    jogador.tipo = request.form.get('editar_tipo', 'SOCIO')
+                    
+                    # Manter status atual se não for enviado
+                    if 'editar_ativo' in request.form:
+                        jogador.ativo = True
+                    # Se não enviar, mantém o valor atual (não altera)
+                    
+                    jogador.nativo = 'editar_nativo' in request.form
+                    
+                    logger.info(f"Jogador {jogador.id} será atualizado: nome='{jogador.nome}', tipo={jogador.tipo}, ativo={jogador.ativo}")
                     
                     db.session.commit()
                     flash('Jogador atualizado com sucesso!', 'success')
