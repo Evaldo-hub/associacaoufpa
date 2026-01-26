@@ -672,6 +672,32 @@ def presencas(jogo_id):
         flash('Erro ao carregar página de presenças', 'danger')
         return redirect(url_for('jogos'))
 
+@app.route('/jogador-dados/<int:jogador_id>')
+@login_required
+def jogador_dados(jogador_id):
+    """Retorna dados de um jogador em formato JSON para AJAX"""
+    try:
+        jogador = Jogador.query.get_or_404(jogador_id)
+        
+        # Verificar permissão - apenas admins podem ver dados de outros jogadores
+        if not current_user.is_admin():
+            # Se não for admin, só pode ver seus próprios dados
+            if not current_user.jogador_id or current_user.jogador_id != jogador_id:
+                return jsonify({'error': 'Sem permissão para acessar estes dados'}), 403
+        
+        return jsonify({
+            'id': jogador.id,
+            'nome': jogador.nome,
+            'telefone': jogador.telefone,
+            'tipo': jogador.tipo,
+            'ativo': jogador.ativo,
+            'nativo': jogador.nativo
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar dados do jogador {jogador_id}: {e}")
+        return jsonify({'error': 'Jogador não encontrado'}), 404
+
 @app.route('/extornar-despesa/<int:despesa_id>', methods=['POST'])
 def extornar_despesa(despesa_id):
     """Extorna uma despesa do sistema"""
