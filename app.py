@@ -17,6 +17,9 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 import os
 from functools import wraps
 from urllib.parse import quote
+from flask import jsonify
+from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
 
 # ================= CONFIGURAÇÃO =================
 app = Flask(__name__, static_folder='static')
@@ -245,7 +248,7 @@ def validar_tipo_jogador(tipo):
         raise ValueError(f"Tipo inválido. Use: {', '.join(tipos_validos)}")
     return tipo
 
-# ================= ROTAS =================
+
 # ================= ROTAS =================
 
 @app.route('/pwa/')
