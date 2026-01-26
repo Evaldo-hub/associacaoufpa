@@ -542,7 +542,6 @@
 
 {% block scripts %}
 <script>
-// Validar formulário de adicionar despesa
 document.addEventListener('DOMContentLoaded', function() {
   // Adicionar timestamp para evitar cache
   const timestamp = new Date().getTime();
@@ -598,27 +597,19 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log(`Formulário: ${form.id || 'sem ID'}`);
       console.log(`Action: ${form.action}`);
       
-      // Coletar todos os dados antes do envio
+      // Mostrar todos os dados do formulário para debug
       const formData = new FormData(form);
-      console.log("Dados sendo enviados:");
-      
-      let hasData = false;
+      console.log("Dados do formulário:");
       for (let [key, value] of formData.entries()) {
         console.log(`  ${key}: ${value}`);
-        hasData = true;
       }
       
-      if (!hasData) {
-        console.warn("ATENÇÃO: Nenhum dado encontrado no formulário!");
-        alert("ATENÇÃO: O formulário não contém dados para enviar!");
-        e.preventDefault();
-        return false;
-      }
-      
-      // Verificar se há checkboxes marcados
+      // Mostrar checkboxes marcados
       const checkedBoxes = form.querySelectorAll('input[type="checkbox"]:checked');
       console.log(`Checkboxes marcados: ${checkedBoxes.length}`);
+      checkedBoxes.forEach(cb => console.log(`  ${cb.name}: ${cb.checked}`));
       
+      // Permitir envio sempre - o backend fará a validação necessária
       console.log("Enviando para o servidor...");
     });
   });
