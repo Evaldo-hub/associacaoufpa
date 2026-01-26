@@ -555,6 +555,10 @@ def presencas(jogo_id):
                             p.confirmou = True
                             flash('Sua presença foi confirmada!', 'success')
                             logger.info(f"Jogador {current_user.jogador_id} confirmou presença no jogo {jogo_id}")
+                        else:
+                            # Se o checkbox não foi enviado, significa que desmarcou
+                            p.confirmou = False
+                            logger.info(f"Jogador {current_user.jogador_id} desmarcou presença no jogo {jogo_id}")
                         
                         # Não permitir editar outros campos
                         continue
