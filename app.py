@@ -191,19 +191,23 @@ class Auditoria(db.Model):
 
 # ================= INICIALIZAÇÃO DO BANCO =================
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
 
-    # Cria admin padrão se não existir
-    if not User.query.filter_by(username="admin").first():
-        admin = User(
-            username="admin",
-            email="admin@admin.com",
-            role="admin"
-        )
-        admin.set_password("@admin1974")
-        db.session.add(admin)
-        db.session.commit()
-        logger.info("Usuario admin criado com sucesso")
+        # Cria admin padrão se não existir
+        if not User.query.filter_by(username="admin").first():
+            admin = User(
+                username="admin",
+                email="admin@admin.com",
+                role="admin"
+            )
+            admin.set_password("@admin1974")
+            db.session.add(admin)
+            db.session.commit()
+            logger.info("Usuario admin criado com sucesso")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na inicialização do banco: {e}")
 
 # ================= VALIDAÇÕES E UTILITÁRIOS =================
 
@@ -211,9 +215,10 @@ def forcar_refresh_banco():
     """Força o SQLAlchemy a buscar dados atualizados do banco"""
     try:
         db.session.expire_all()
-        db.session.flush()
+        # Remove flush() para evitar problemas de transação
         logger.info("Refresh do banco forçado com sucesso")
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Erro ao forçar refresh do banco: {e}")
 
 def validar_valor(valor_str):
@@ -257,13 +262,17 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        user = User.query.filter_by(username=username).first()
+        try:
+            user = User.query.filter_by(username=username).first()
 
-        if user and user.check_password(password):
-            login_user(user)
-            return redirect(request.args.get("next") or '/')
+            if user and user.check_password(password):
+                login_user(user)
+                return redirect(request.args.get("next") or '/')
 
-        flash("Usuário ou senha inválidos", "danger")
+            flash("Usuário ou senha inválidos", "danger")
+        except Exception as e:
+            logger.error(f"Erro no login: {e}")
+            flash("Erro ao processar login. Tente novamente.", "danger")
 
     return render_template("login.html")
 
