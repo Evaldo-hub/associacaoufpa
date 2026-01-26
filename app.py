@@ -2803,6 +2803,8 @@ def whatsapp_grupo():
         # Buscar jogos para seleção
         jogos = Jogo.query.order_by(Jogo.data.desc()).all()
         
+        mensagem_grupo = None  # Inicializar variável
+        
         if request.method == 'POST':
             tipo_mensagem = request.form.get('tipo_mensagem')
             mensagem_personalizada = request.form.get('mensagem_personalizada', '').strip()
@@ -2867,12 +2869,9 @@ Atenciosamente,
 Diretoria da Associação UFPA
 """
                 flash('Mensagem padrao gerada com sucesso!', 'success')
-        else:
-            # Mensagem padrão para GET
-            mensagem_grupo = None
         
         # Codificar mensagem para URL
-        mensagem_codificada = quote(mensagem_grupo.strip()) if mensagem_grupo else None
+        mensagem_codificada = quote(mensagem_grupo.strip()) if mensagem_grupo and mensagem_grupo.strip() else None
         
         return render_template('whatsapp_grupo.html',
                              jogos=jogos,
