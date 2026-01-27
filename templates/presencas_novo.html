@@ -6,63 +6,7 @@
   <small class="text-muted">({{ jogo.data.strftime('%d/%m/%Y') }})</small>
 </h4>
 
-<form method="post" action="{{ url_for('presencas', jogo_id=jogo.id) }}" id="main-form">
-
-<!-- ===== ADICIONAR JOGADOR ===== -->
-{% if current_user.is_admin() %}
-<div class="card shadow-sm mb-3">
-  <div class="card-body">
-    <h5 class="mb-3">➕ Adicionar Jogador ao Jogo</h5>
-    <div class="row g-2 align-items-end">
-      <div class="col-md-9">
-        <select name="novo_jogador_id" class="form-control">
-          <option value="">Buscar jogador...</option>
-          {% for jogador in todos_jogadores %}
-            {% if jogador.id not in jogadores_no_jogo %}
-              <option value="{{ jogador.id }}">{{ jogador.nome }} ({{ jogador.tipo }})</option>
-            {% endif %}
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3 d-grid">
-        <button type="submit" name="acao" value="add_jogador" class="btn btn-success">
-          Adicionar
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-{% elif current_user.jogador and current_user.jogador.tipo == 'SOCIO' %}
-<!-- Botão para sócio se adicionar ao jogo -->
-{% set meu_id = current_user.jogador_id %}
-{% set ja_adicionado = false %}
-{% for p in participacoes %}
-  {% if p.jogador_id == meu_id %}
-    {% set ja_adicionado = true %}
-  {% endif %}
-{% endfor %}
-
-{% if not ja_adicionado %}
-<div class="card shadow-sm border-success mb-3">
-  <div class="card-body">
-    <h5 class="mb-3">🎯 Participar do Jogo</h5>
-    <p class="mb-3">Deseja se adicionar a este jogo?</p>
-    <div class="d-grid">
-      <button type="submit" name="acao" value="add_jogador" class="btn btn-success btn-lg">
-        ✅ Confirmar Presença
-      </button>
-    </div>
-  </div>
-</div>
-{% else %}
-<div class="card shadow-sm border-info mb-3">
-  <div class="card-body">
-    <h5 class="mb-3">✅ Você já está neste jogo!</h5>
-    <p class="mb-0">Sua participação já está confirmada. Você pode confirmar presença na tabela abaixo.</p>
-  </div>
-</div>
-{% endif %}
-{% endif %}
+<form method="post" action="{{ url_for('presencas', jogo_id=jogo.id) }}">
 
 <!-- ===== RESUMO ===== -->
 <div class="row g-2 mb-3">
@@ -200,80 +144,6 @@
   </tbody>
 </table>
 </div>
-
-<!-- Formulário para adicionar despesa -->
-{% if current_user.is_admin() %}
-<div class="card shadow-sm bg-light mb-3">
-  <div class="card-header">
-    <h6 class="mb-0">💸 Adicionar Despesa</h6>
-  </div>
-  <div class="card-body">
-    {% set dias_jogo = (data_jogo_hoje - jogo.data).days %}
-    <!-- Campos para adicionar despesa (integrados ao formulário principal) -->
-    <div class='row g-2 mb-3'>
-      <div class='col-md-6'>
-        <select name='desc_despesa' class='form-control' {% if dias_jogo > 15 %}disabled{% endif %}>
-          <option value=''>Selecione uma despesa...</option>
-          <option value='Árbitro'>👨‍⚖️ Árbitro</option>
-          <option value='Água'>💧 Água</option>
-          <option value='Bola'>⚽ Bola</option>
-          <option value='Campo Aluguel'>🏟️ Campo Aluguel</option>
-          <option value='Uniformes'>👕 Uniformes</option>
-          <option value='Transporte'>🚐 Transporte</option>
-          <option value='Lanche'>🍔 Lanche</option>
-          <option value='Material Esportivo'>🥅 Material Esportivo</option>
-          <option value='Outros'>📦 Outros</option>
-        </select>
-      </div>
-      <div class='col-md-3'>
-        <input type='number' step='0.01' min='0' name='val_despesa' class='form-control' placeholder='Valor R$' {% if dias_jogo > 15 %}disabled{% endif %}>
-      </div>
-      <div class='col-md-3'>
-        <button type='submit' name='acao' value='add_despesa' class='btn btn-success w-100' {% if dias_jogo > 15 %}disabled{% endif %}>
-          ➕ Adicionar Despesa
-        </button>
-      </div>
-    </div>
-    
-    <!-- LISTA DE DESPESAS -->
-    <div class="table-responsive">
-    <table class="table table-sm table-bordered">
-      <thead class="table-danger">
-        <tr>
-          <th>Descrição</th>
-          <th class="text-end">Valor (R$)</th>
-          <th class="text-center">❌</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for d in despesas_partida %}
-        <tr>
-          <td>{{ d.descricao }}</td>
-          <td class="text-end">{{ "%.2f"|format(d.valor) }}</td>
-          <td class="text-center">
-            {% if current_user.is_admin() %}
-            <button type="submit"
-                    name="remover_despesa_id"
-                    value="{{ d.id }}"
-                    class="btn btn-sm btn-outline-danger">
-              🗑️
-            </button>
-            {% endif %}
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="3" class="text-center text-muted">
-            Nenhuma despesa lançada
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    </div>
-  </div>
-</div>
-{% endif %}
 
 <!-- ===== AÇÕES ===== -->
 <div class="d-flex flex-wrap gap-2 mt-3">
