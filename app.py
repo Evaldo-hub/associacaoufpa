@@ -451,7 +451,24 @@ def presencas(jogo_id):
         logger.info(f"Jogo encontrado: {jogo.adversario} em {jogo.data}")
         
         participacoes = Participacao.query.filter_by(jogo_id=jogo_id).all()
-        logger.info(f"Participações encontradas: {len(participacoes)}")
+        
+        # Filter out participations with invalid player references (defensive programming)
+        participacoes_validas = []
+        for p in participacoes:
+            if p.jogador is None:
+                logger.warning(f"Participação {p.id} com jogador inválido (ID: {p.jogador_id}) será ignorada")
+                # Remove invalid participation to prevent future errors
+                db.session.delete(p)
+            else:
+                participacoes_validas.append(p)
+        
+        # Commit removal of invalid participations if any were found
+        if len(participacoes_validas) != len(participacoes):
+            db.session.commit()
+            logger.info(f"Removidas {len(participacoes) - len(participacoes_validas)} participações inválidas")
+        
+        participacoes = participacoes_validas
+        logger.info(f"Participações válidas encontradas: {len(participacoes)}")
 
         if request.method == 'POST':
             try:
@@ -541,6 +558,32 @@ def presencas(jogo_id):
                     
                     return redirect(url_for('presencas', jogo_id=jogo_id))
                 
+                # ❌ REMOVER DESPESA
+                if request.form.get('remover_despesa_id'):
+                    despesa_id = int(request.form.get('remover_despesa_id'))
+                    
+                    # Verificar se o jogo tem mais de 15 dias
+                    from datetime import date, timedelta
+                    data_jogo = jogo.data
+                    hoje = date.today()
+                    diferenca_dias = (hoje - data_jogo).days
+                    
+                    if diferenca_dias > 15:
+                        flash('Jogos com mais de 15 dias não permitem remover despesas!', 'warning')
+                        return redirect(url_for('presencas', jogo_id=jogo_id))
+                    
+                    # Buscar e remover despesa
+                    despesa = Financeiro.query.get(despesa_id)
+                    if despesa and despesa.tipo == 'DESPESA':
+                        db.session.delete(despesa)
+                        db.session.commit()
+                        flash('Despesa removida com sucesso!', 'success')
+                        logger.info(f"Despesa {despesa.descricao} removida pelo admin {current_user.username}")
+                    else:
+                        flash('Despesa não encontrada ou não é uma despesa válida!', 'danger')
+                    
+                    return redirect(url_for('presencas', jogo_id=jogo_id))
+                
                 # Lógica para atualizar presenças com verificação de permissões
                 logger.info("Atualizando presenças existentes")
                 for p in participacoes:
@@ -567,12 +610,16 @@ def presencas(jogo_id):
                     p.confirmou = f'confirmou_{p.id}' in request.form
                     p.pagou = f'pagou_{p.id}' in request.form
                     
-                    # Validar valor pago
-                    valor_str = request.form.get(f'valor_{p.id}') or '0'
-                    try:
-                        p.valor_pago = validar_valor(valor_str)
-                    except ValueError:
+                    # Se não pagou, zerar valor
+                    if not p.pagou:
                         p.valor_pago = 0
+                    else:
+                        # Validar valor pago
+                        valor_str = request.form.get(f'valor_{p.id}') or '0'
+                        try:
+                            p.valor_pago = validar_valor(valor_str)
+                        except ValueError:
+                            p.valor_pago = 0
 
                     # Atualizar dados técnicos (gols, expulsões)
                     gols_str = request.form.get(f'gols_{p.id}') or '0'
@@ -614,7 +661,7 @@ def presencas(jogo_id):
                         logger.info(f"Despesa adicionada: {desc_despesa} - R${valor_despesa}")
                     except ValueError as e:
                         flash(f'Erro ao adicionar despesa: {str(e)}', 'warning')
-
+                
                 logger.info("Fazendo commit das alterações...")
                 db.session.commit()
                 flash('Presenças e pagamentos atualizados!', 'success')
@@ -791,10 +838,22 @@ def pdf_partida(jogo_id):
         pagantes = sum(1 for p in participacoes if p.pagou)
         total_arrecadado = sum(p.valor_pago for p in participacoes if p.pagou)
         
+        # Calcular total de despesas (reutilizar variável que será usada depois)
+        data_jogo = jogo.data.strftime('%d/%m/%Y')
+        despesas_partida = Financeiro.query.filter(
+            Financeiro.descricao.like(f"Despesa Jogo {data_jogo}%")
+        ).all()
+        total_despesas = sum(float(d.valor) if d.valor else 0.0 for d in despesas_partida)
+        
+        # Calcular saldo
+        saldo = total_arrecadado - total_despesas
+        
         stats_data = [
             ['Confirmados:', str(confirmados)],
             ['Pagantes:', str(pagantes)],
-            ['Total Arrecadado:', f'R$ {total_arrecadado:.2f}']
+            ['Total Arrecadado:', f'R$ {total_arrecadado:.2f}'],
+            ['Total Despesas:', f'R$ {total_despesas:.2f}'],
+            ['Saldo:', f'R$ {saldo:.2f}']
         ]
         
         stats_table = Table(stats_data, colWidths=[2*inch, 2*inch])
@@ -807,7 +866,10 @@ def pdf_partida(jogo_id):
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('BACKGROUND', (1, 0), (1, -1), colors.white),
             ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            # Destacar linhas financeiras
+            ('BACKGROUND', (0, 2), (-1, 4), colors.lightgreen),  # Linhas financeiras
+            ('TEXTCOLOR', (1, 4), (1, 4), colors.red if saldo < 0 else colors.darkgreen),  # Saldo colorido
         ]))
         
         story.append(stats_table)
@@ -856,62 +918,54 @@ def pdf_partida(jogo_id):
             story.append(Spacer(1, 20))
         
         # Despesas Detalhadas
-        try:
-            data_jogo = jogo.data.strftime('%d/%m/%Y')
-            despesas_partida = Financeiro.query.filter(
-                Financeiro.descricao.like(f"Despesa Jogo {data_jogo}%")
-            ).all()
+        if despesas_partida:
+            story.append(Paragraph("DESPESAS DETALHADAS", styles['Heading2']))
+            story.append(Spacer(1, 10))
             
-            if despesas_partida:
-                story.append(Paragraph("DESPESAS DETALHADAS", styles['Heading2']))
-                story.append(Spacer(1, 10))
-                
-                # Cabeçalho da tabela de despesas
-                despesa_headers = ['Categoria', 'Descrição', 'Valor']
-                despesa_data = [despesa_headers]
-                
-                # Dados das despesas
-                for despesa in despesas_partida:
-                    try:
-                        # Extrair descrição limpa
-                        descricao = despesa.descricao.replace(f"Despesa Jogo {data_jogo}: ", "")
-                        
-                        # Validar valor da despesa
-                        try:
-                            valor = float(despesa.valor) if despesa.valor else 0.0
-                        except (ValueError, TypeError):
-                            valor = 0.0
-                        
-                        despesa_data.append([
-                            despesa.tipo or 'Não informado',
-                            descricao or 'Sem descrição',
-                            f'R$ {valor:.2f}'
-                        ])
-                    except Exception as e:
-                        logger.error(f"Erro ao processar despesa {despesa.id}: {e}")
-                        continue
-                
-                # Criar tabela apenas se houver dados
-                if len(despesa_data) > 1:
-                    despesa_table = Table(despesa_data, colWidths=[1.5*inch, 3*inch, 1*inch])
-                    despesa_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 0), (-1, 0), 10),
-                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                        ('BACKGROUND', (0, 1), (-1, -1), colors.lightpink),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                        ('FONTSIZE', (0, 1), (-1, -1), 9),
-                        ('ALIGN', (0, 1), (1, -1), 'LEFT'),  # Categoria e Descrição alinhados à esquerda
-                        ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # Valor alinhado ao centro
-                    ]))
+            # Cabeçalho da tabela de despesas
+            despesa_headers = ['Categoria', 'Descrição', 'Valor']
+            despesa_data = [despesa_headers]
+            
+            # Dados das despesas
+            for despesa in despesas_partida:
+                try:
+                    # Extrair descrição limpa
+                    descricao = despesa.descricao.replace(f"Despesa Jogo {data_jogo}: ", "")
                     
-                    story.append(despesa_table)
-                    story.append(Spacer(1, 20))
-        except Exception as e:
-            logger.error(f"Erro ao processar despesas: {e}")
+                    # Validar valor da despesa
+                    try:
+                        valor = float(despesa.valor) if despesa.valor else 0.0
+                    except (ValueError, TypeError):
+                        valor = 0.0
+                    
+                    despesa_data.append([
+                        despesa.tipo or 'Não informado',
+                        descricao or 'Sem descrição',
+                        f'R$ {valor:.2f}'
+                    ])
+                except Exception as e:
+                    logger.error(f"Erro ao processar despesa {despesa.id}: {e}")
+                    continue
+            
+            # Criar tabela apenas se houver dados
+            if len(despesa_data) > 1:
+                despesa_table = Table(despesa_data, colWidths=[1.5*inch, 3*inch, 1*inch])
+                despesa_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.lightpink),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('ALIGN', (0, 1), (1, -1), 'LEFT'),  # Categoria e Descrição alinhados à esquerda
+                    ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # Valor alinhado ao centro
+                ]))
+                
+                story.append(despesa_table)
+                story.append(Spacer(1, 20))
         
         # Craque da partida (se houver)
         if jogo.craque:
