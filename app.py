@@ -37,6 +37,10 @@ def manifest():
 # ================= BANCO DE DADOS =================
 db_url = os.environ.get("DATABASE_URL")
 
+# 🔥 CORREÇÃO AQUI
+if db_url:
+    db_url = db_url.strip()
+
 # Permite rodar local com SQLite
 if not db_url:
     db_url = "sqlite:///local.db"
@@ -48,10 +52,6 @@ if db_url.startswith("postgres://"):
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-# Cookies
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_HTTPONLY'] = True
 
 # ================= LOG =================
 logging.basicConfig(
